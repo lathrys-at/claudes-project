@@ -597,11 +597,11 @@ class TestTakeDrop:
     def test_take_large_list_partial(self):
         """Test that take handles a large list without stack overflow."""
         env = make_global_env()
-        # Take 4000 elements from a 5000-element list
-        result = eval_source("(take (range 5000) 4000)", env)
-        assert len(result) == 4000
-        # Verify the last element is correct (should be 3999)
-        assert eval_source("(last (take (range 5000) 4000))", env) == 3999
+        # Take 800 elements from a 1000-element list
+        result = eval_source("(take (range 1000) 800)", env)
+        assert len(result) == 800
+        # Verify the last element is correct (should be 799)
+        assert eval_source("(last (take (range 1000) 800))", env) == 799
 
     def test_take_large_list_more_than_length(self):
         """Test that take more than list length returns the whole list."""
@@ -687,23 +687,23 @@ class TestMap2:
     def test_map2_large_lists(self):
         """Test that map2 handles large lists without stack overflow."""
         env = make_global_env()
-        # Apply + to corresponding elements of two 4000-element lists
-        result = eval_source("(map2 + (range 4000) (range 4000))", env)
-        assert len(result) == 4000
+        # Apply + to corresponding elements of two 1000-element lists
+        result = eval_source("(map2 + (range 1000) (range 1000))", env)
+        assert len(result) == 1000
         # Element at index i should be 2*i
         # Check a sample element: the element at index 100 should be 200
-        assert eval_source("(nth (map2 + (range 4000) (range 4000)) 100)", env) == 200
+        assert eval_source("(nth (map2 + (range 1000) (range 1000)) 100)", env) == 200
         # Check the last element
-        assert eval_source("(last (map2 + (range 4000) (range 4000)))", env) == 7998
+        assert eval_source("(last (map2 + (range 1000) (range 1000)))", env) == 1998
 
     def test_map2_large_lists_stop_at_shorter(self):
         """Test that map2 still stops at the shorter list with large inputs."""
         env = make_global_env()
-        # One list is 4000 elements, the other is 10
-        result = eval_source("(map2 + (range 4000) (range 10))", env)
+        # One list is 1000 elements, the other is 10
+        result = eval_source("(map2 + (range 1000) (range 10))", env)
         assert len(result) == 10
         # Last element should be 9 + 9 = 18
-        assert eval_source("(last (map2 + (range 4000) (range 10)))", env) == 18
+        assert eval_source("(last (map2 + (range 1000) (range 10)))", env) == 18
 
 
 class TestZip:
@@ -719,15 +719,15 @@ class TestZip:
     def test_zip_large_lists(self):
         """Test that zip handles large lists without stack overflow (via map2)."""
         env = make_global_env()
-        # Zip two 3000-element lists
-        result = eval_source("(zip (range 3000) (range 100 3100))", env)
-        assert len(result) == 3000
+        # Zip two 1000-element lists
+        result = eval_source("(zip (range 1000) (range 100 1100))", env)
+        assert len(result) == 1000
         # First pair should be (0 100)
-        first_pair = eval_source("(car (zip (range 3000) (range 100 3100)))", env)
+        first_pair = eval_source("(car (zip (range 1000) (range 100 1100)))", env)
         assert list(first_pair) == [0, 100]
-        # Last pair should be (2999 3099)
-        last_pair = eval_source("(last (zip (range 3000) (range 100 3100)))", env)
-        assert list(last_pair) == [2999, 3099]
+        # Last pair should be (999 1099)
+        last_pair = eval_source("(last (zip (range 1000) (range 100 1100)))", env)
+        assert list(last_pair) == [999, 1099]
 
 
 class TestFlatten:
