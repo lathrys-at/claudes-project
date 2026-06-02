@@ -1,5 +1,5 @@
 """Builtin functions for the Pebble Lisp interpreter."""
-from pebble.types import Symbol, PebbleList, NIL
+from pebble.types import Symbol, PebbleList, NIL, PebbleHash
 from pebble.evaluator import EvalError, is_truthy
 
 # Gensym counter for generating unique symbols
@@ -400,6 +400,136 @@ def builtin_table(apply_proc):
         from pebble.evaluator import Macro
         return isinstance(x, Macro)
 
+    # ===== HASH MAP OPERATIONS =====
+
+    def builtin_make_hash(*args):
+        """(make-hash) or (make-hash k1 v1 k2 v2 ...) -> PebbleHash.
+
+        Creates an empty hash map if no args, or builds one from alternating
+        key/value arguments. Raises EvalError if odd number of arguments.
+        """
+        if len(args) % 2 != 0:
+            raise EvalError(f"make-hash: expected even number of arguments, got {len(args)}")
+
+        data = {}
+        for i in range(0, len(args), 2):
+            key = args[i]
+            value = args[i + 1]
+            # Try to use the key; if unhashable, raise EvalError
+            try:
+                data[key] = value
+            except TypeError as e:
+                raise EvalError(f"make-hash: unhashable key type {type(key).__name__}")
+
+        return PebbleHash(data)
+
+    def builtin_hash_p(x):
+        """(hash? x) -> True if x is a PebbleHash, else False."""
+        return isinstance(x, PebbleHash)
+
+    def builtin_hash_set(m, k, v):
+        """(hash-set m k v) -> new PebbleHash with k mapped to v.
+
+        Returns a new hash map with the same entries as m plus/replacing k->v.
+        m is unchanged. Raises EvalError if m is not a hash map or key is unhashable.
+        """
+        if not isinstance(m, PebbleHash):
+            raise EvalError(f"hash-set: first argument must be a hash map, got {type(m).__name__}")
+
+        try:
+            new_data = dict(m._data)
+            new_data[k] = v
+        except TypeError as e:
+            raise EvalError(f"hash-set: unhashable key type {type(k).__name__}")
+
+        return PebbleHash(new_data)
+
+    def builtin_hash_ref(m, k, *args):
+        """(hash-ref m k) or (hash-ref m k default) -> value at key k.
+
+        If k is present in m, returns its value. If absent and no default given,
+        raises EvalError. If absent and default given, returns default.
+        Raises EvalError if m is not a hash map.
+        """
+        if not isinstance(m, PebbleHash):
+            raise EvalError(f"hash-ref: first argument must be a hash map, got {type(m).__name__}")
+
+        if len(args) == 0:
+            # No default: must have key
+            if k in m:
+                return m.get(k)
+            else:
+                raise EvalError(f"hash-ref: key not found in hash map")
+        elif len(args) == 1:
+            # With default
+            default = args[0]
+            return m.get(k, default)
+        else:
+            raise EvalError(f"hash-ref: expected 2 or 3 arguments, got {2 + len(args)}")
+
+    def builtin_hash_has_p(m, k):
+        """(hash-has? m k) -> True if k is a key in m, else False.
+
+        Raises EvalError if m is not a hash map.
+        """
+        if not isinstance(m, PebbleHash):
+            raise EvalError(f"hash-has?: first argument must be a hash map, got {type(m).__name__}")
+        return k in m
+
+    def builtin_hash_remove(m, k):
+        """(hash-remove m k) -> new hash map with key k removed.
+
+        If k is absent, returns a map equal to m (no error).
+        m is unchanged. Raises EvalError if m is not a hash map.
+        """
+        if not isinstance(m, PebbleHash):
+            raise EvalError(f"hash-remove: first argument must be a hash map, got {type(m).__name__}")
+
+        new_data = dict(m._data)
+        new_data.pop(k, None)  # Remove if present, no-op if absent
+        return PebbleHash(new_data)
+
+    def builtin_hash_count(m):
+        """(hash-count m) -> integer number of key/value pairs in m.
+
+        Raises EvalError if m is not a hash map.
+        """
+        if not isinstance(m, PebbleHash):
+            raise EvalError(f"hash-count: argument must be a hash map, got {type(m).__name__}")
+        return len(m)
+
+    def builtin_hash_keys(m):
+        """(hash-keys m) -> PebbleList of keys in m.
+
+        Raises EvalError if m is not a hash map.
+        """
+        if not isinstance(m, PebbleHash):
+            raise EvalError(f"hash-keys: argument must be a hash map, got {type(m).__name__}")
+        return PebbleList(m.keys())
+
+    def builtin_hash_values(m):
+        """(hash-values m) -> PebbleList of values in m.
+
+        Raises EvalError if m is not a hash map.
+        """
+        if not isinstance(m, PebbleHash):
+            raise EvalError(f"hash-values: argument must be a hash map, got {type(m).__name__}")
+        return PebbleList(m.values())
+
+    def builtin_hash_to_list(m):
+        """(hash->list m) -> PebbleList of [key value] pairs.
+
+        Returns a list of two-element lists, one for each key/value pair.
+        Raises EvalError if m is not a hash map.
+        """
+        if not isinstance(m, PebbleHash):
+            raise EvalError(f"hash->list: argument must be a hash map, got {type(m).__name__}")
+
+        result = []
+        for key, value in m.items():
+            result.append(PebbleList([key, value]))
+        return PebbleList(result)
+
     # ===== BUILD AND RETURN BUILTIN TABLE =====
 
     return {
@@ -457,4 +587,14 @@ def builtin_table(apply_proc):
         "error": builtin_error,
         "gensym": builtin_gensym,
         "macro?": builtin_macro_p,
+        "make-hash": builtin_make_hash,
+        "hash?": builtin_hash_p,
+        "hash-set": builtin_hash_set,
+        "hash-ref": builtin_hash_ref,
+        "hash-has?": builtin_hash_has_p,
+        "hash-remove": builtin_hash_remove,
+        "hash-count": builtin_hash_count,
+        "hash-keys": builtin_hash_keys,
+        "hash-values": builtin_hash_values,
+        "hash->list": builtin_hash_to_list,
     }

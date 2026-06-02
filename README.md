@@ -47,6 +47,7 @@ Pebble values map onto Python values where natural:
 | string        | `str`                          |
 | symbol        | `pebble.types.Symbol`          |
 | list          | `pebble.types.PebbleList`      |
+| hash map      | `pebble.types.PebbleHash`      |
 | nil / empty   | empty `PebbleList`             |
 | boolean       | `True` / `False`               |
 
@@ -129,6 +130,42 @@ Lambdas and macros support variadic parameters to collect remaining arguments:
 (define-macro (when test . body)
   `(if ,test (begin ,@body) nil))
 ```
+
+### Hash Maps
+
+Pebble includes an immutable hash map (dictionary) data type, perfect for associative key-value storage.
+Hash maps are first-class values and support functional, immutable operations:
+
+```scheme
+; Create empty hash map
+(define m (make-hash))
+
+; Create hash map with initial pairs
+(define m (make-hash "name" "Alice" "age" 30 "city" "NYC"))
+
+; Add or update a key (returns new map, original unchanged)
+(define m2 (hash-set m "age" 31))
+
+; Look up a key
+(hash-ref m "name")               ; => "Alice"
+(hash-ref m "missing" "default")  ; => "default" (with default)
+
+; Check for key membership
+(hash-has? m "name")              ; => true
+
+; Remove a key (returns new map)
+(define m3 (hash-remove m "age"))
+
+; Get size
+(hash-count m)                    ; => 3
+
+; Get collections
+(hash-keys m)                     ; => ("name" "age" "city")
+(hash-values m)                   ; => ("Alice" 30 "NYC")
+(hash->list m)                    ; => (("name" "Alice") ("age" 30) ("city" "NYC"))
+```
+
+All hash map operations return new maps and leave the originals unchanged (immutability). Keys can be any hashable value: integers, strings, symbols, booleans, and the empty list.
 
 ### Standard Library
 
