@@ -80,6 +80,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/error_handling.pebble` — Demonstrates try/catch error handling
 - `examples/calculator.pebble` — Arithmetic expression evaluator with operator precedence and parentheses
 - `examples/metacircular.pebble` — A tiny Lisp interpreter written in Pebble, supporting lambda, closures, recursion, and define
+- `examples/life.pebble` — Conway's Game of Life on a mutable-vector grid
 
 Run any example directly:
 

@@ -1,0 +1,81 @@
+;;; Conway's Game of Life on a mutable-vector grid (5x5)
+;;; Cells are represented as 0 (dead) or 1 (alive)
+;;; Grid is stored as a vector of 5 row-vectors
+
+(define (make-grid)
+  "Create a 5x5 grid initialized with all cells dead (0)"
+  (let ((rows (make-vector 5)))
+    (dotimes (i 5)
+      (vector-set! rows i (make-vector 5 0)))
+    rows))
+
+(define (grid-set! grid row col value)
+  "Set a cell in the grid"
+  (vector-set! (vector-ref grid row) col value))
+
+(define (grid-get grid row col)
+  "Get a cell from the grid"
+  (vector-ref (vector-ref grid row) col))
+
+(define (count-neighbors grid row col)
+  "Count alive neighbors for a cell at (row, col)"
+  (let ((count 0))
+    (dotimes (dr 3)
+      (dotimes (dc 3)
+        (when (not (and (= dr 1) (= dc 1)))
+          (let ((nr (+ row (- dr 1)))
+                (nc (+ col (- dc 1))))
+            (when (and (>= nr 0) (< nr 5) (>= nc 0) (< nc 5))
+              (set! count (+ count (grid-get grid nr nc))))))))
+    count))
+
+(define (next-generation grid)
+  "Compute the next generation of the grid"
+  (let ((new-grid (make-grid)))
+    (dotimes (r 5)
+      (dotimes (c 5)
+        (let ((alive (grid-get grid r c))
+              (neighbors (count-neighbors grid r c)))
+          (let ((new-state
+                  (cond
+                    ((and (= alive 1) (or (= neighbors 2) (= neighbors 3))) 1)
+                    ((and (= alive 0) (= neighbors 3)) 1)
+                    (else 0))))
+            (grid-set! new-grid r c new-state)))))
+    new-grid))
+
+(define (grid-to-string grid)
+  "Convert a grid to a string representation (5 lines of 5 chars each)"
+  (let ((lines (make-vector 5)))
+    (dotimes (r 5)
+      (let ((line ""))
+        (dotimes (c 5)
+          (let ((cell (grid-get grid r c)))
+            (set! line (string-append line (if (= cell 1) "#" ".")))))
+        (vector-set! lines r line)))
+    lines))
+
+(define (print-grid grid)
+  "Print a grid as 5 lines"
+  (let ((lines (grid-to-string grid)))
+    (dotimes (i 5)
+      (displayln (vector-ref lines i)))))
+
+; Initialize grid with horizontal blinker: cells at (2, 1), (2, 2), (2, 3) are alive
+(define grid (make-grid))
+(grid-set! grid 2 1 1)
+(grid-set! grid 2 2 1)
+(grid-set! grid 2 3 1)
+
+; Print generation 0
+(print-grid grid)
+(displayln "")
+
+; Compute and print generation 1
+(set! grid (next-generation grid))
+(print-grid grid)
+(displayln "")
+
+; Compute and print generation 2
+(set! grid (next-generation grid))
+(print-grid grid)
