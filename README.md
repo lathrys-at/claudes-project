@@ -311,6 +311,89 @@ Unlike Pebble lists and hash maps (which are immutable), vectors support mutatio
 
 Vectors are mutable, meaning `vector-set!` changes the vector in place and is visible through all references to that vector (true reference semantics). An empty vector `#()` is still truthy (only `false` and the empty list are falsy).
 
+### Primitive Builtins
+
+Pebble provides a comprehensive set of primitive builtin functions implemented in Python:
+
+**Arithmetic Operations:**
+- `+`, `-`, `*`, `/` — basic arithmetic (variadic for `+`, `*`; `-` supports unary negation)
+- `abs` — absolute value
+- `expt` — exponentiation (base, exponent)
+- `min`, `max` — minimum and maximum (variadic)
+- `modulo` — remainder of division (sign follows divisor)
+- `quotient` — integer division truncated toward zero
+- `remainder` — remainder of truncating division (sign follows dividend)
+- `gcd` — greatest common divisor (variadic)
+- `lcm` — least common multiple (variadic)
+
+**Floating-Point Operations:**
+- `sqrt` — square root (returns float)
+- `floor` — largest integer ≤ x
+- `ceiling` — smallest integer ≥ x
+- `round` — nearest integer (banker's rounding)
+- `truncate` — integer part toward zero
+
+**Comparison:**
+- `=`, `<`, `>`, `<=`, `>=` — comparison operators (variadic, chained)
+
+**Type Predicates:**
+- `number?`, `integer?`, `float?` — numeric type checks
+- `string?`, `symbol?` — string and symbol checks
+- `list?`, `pair?`, `null?`, `nil?` — list checks (pair? is non-empty, null?/nil? are empty)
+- `boolean?`, `procedure?` — boolean and function checks
+- `vector?`, `hash?` — collection type checks
+
+**Boolean:**
+- `not` — logical negation
+
+**List Operations:**
+- `list`, `cons` — list construction
+- `car`, `cdr` — head and tail access
+- `length` — list length
+- `append` — concatenate lists
+- `reverse` — reverse a list
+- `list-ref` — element at index
+- `member` — find element in list
+
+**Higher-Order Functions:**
+- `map`, `filter` — transform and select list elements
+- `foldl`, `foldr` — left and right folds (accumulation)
+- `for-each` — apply function for side effects
+- `apply` — apply function to list of arguments
+
+**Vector Operations:**
+- `vector`, `make-vector` — vector construction
+- `vector-ref`, `vector-set!` — access and mutation
+- `vector-length` — vector length
+- `vector->list`, `list->vector` — conversions
+- `vector-push!` — append to vector
+
+**String Operations:**
+- `string-append` — concatenate strings
+- `string-length` — string length
+- `substring` — extract substring
+- `string->symbol`, `symbol->string` — conversions
+- `number->string`, `string->number` — numeric conversions
+
+**Hash Map Operations:**
+- `make-hash` — create hash map
+- `hash-set` — add/update key (immutable)
+- `hash-ref` — look up value by key
+- `hash-has?` — check key membership
+- `hash-remove` — remove key (immutable)
+- `hash-count` — number of entries
+- `hash-keys`, `hash-values` — get keys and values as lists
+- `hash->list` — convert to list of [key value] pairs
+
+**I/O:**
+- `print`, `display` — output with or without newline
+- `newline` — output newline
+
+**Error Handling & Meta:**
+- `error` — raise an EvalError
+- `gensym` — generate unique symbols (for macros)
+- `macro?` — test if value is a macro
+
 ### Standard Library
 
 Pebble includes a standard library written in the Pebble language itself, automatically loaded into the global environment via `make_global_env()`. The library is defined in `pebble/prelude.pebble` and provides:

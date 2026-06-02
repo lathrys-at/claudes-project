@@ -1,4 +1,5 @@
 """Builtin functions for the Pebble Lisp interpreter."""
+import math
 from pebble.types import Symbol, PebbleList, NIL, PebbleHash, PebbleVector
 from pebble.evaluator import EvalError, is_truthy
 
@@ -56,6 +57,132 @@ def builtin_table(apply_proc):
         if b == 0:
             raise EvalError("division by zero")
         return a % b
+
+    def builtin_quotient(a, b):
+        """(quotient a b) -> integer division truncated toward zero.
+
+        Both arguments must be integers (not booleans).
+        Raises EvalError if not integers or if b == 0.
+        """
+        if not isinstance(a, int) or isinstance(a, bool):
+            raise EvalError(f"quotient: first argument must be an integer, got {type(a).__name__}")
+        if not isinstance(b, int) or isinstance(b, bool):
+            raise EvalError(f"quotient: second argument must be an integer, got {type(b).__name__}")
+        if b == 0:
+            raise EvalError("division by zero")
+        # Truncate toward zero
+        return int(a / b)
+
+    def builtin_remainder(a, b):
+        """(remainder a b) -> remainder of truncating division.
+
+        Result: a - b * (quotient a b). Sign follows the DIVIDEND.
+        Both arguments must be integers (not booleans).
+        Raises EvalError if not integers or if b == 0.
+        """
+        if not isinstance(a, int) or isinstance(a, bool):
+            raise EvalError(f"remainder: first argument must be an integer, got {type(a).__name__}")
+        if not isinstance(b, int) or isinstance(b, bool):
+            raise EvalError(f"remainder: second argument must be an integer, got {type(b).__name__}")
+        if b == 0:
+            raise EvalError("division by zero")
+        q = int(a / b)  # Truncate toward zero
+        return a - b * q
+
+    def builtin_gcd(*args):
+        """(gcd ...) -> greatest common divisor of integer arguments.
+
+        All arguments must be integers (not booleans).
+        (gcd) -> 0, (gcd 5) -> 5, (gcd -12 18) -> 6, (gcd 12 18 24) -> 6.
+        Result is non-negative.
+        """
+        for arg in args:
+            if not isinstance(arg, int) or isinstance(arg, bool):
+                raise EvalError(f"gcd: all arguments must be integers, got {type(arg).__name__}")
+
+        if len(args) == 0:
+            return 0
+
+        result = abs(args[0])
+        for arg in args[1:]:
+            result = math.gcd(result, abs(arg))
+        return result
+
+    def builtin_lcm(*args):
+        """(lcm ...) -> least common multiple of integer arguments.
+
+        All arguments must be integers (not booleans).
+        (lcm) -> 1, (lcm 4 6) -> 12, (lcm 0 5) -> 0, (lcm 2 3 4) -> 12.
+        Result is non-negative.
+        """
+        for arg in args:
+            if not isinstance(arg, int) or isinstance(arg, bool):
+                raise EvalError(f"lcm: all arguments must be integers, got {type(arg).__name__}")
+
+        if len(args) == 0:
+            return 1
+
+        result = abs(args[0])
+        for arg in args[1:]:
+            arg_abs = abs(arg)
+            if result == 0 or arg_abs == 0:
+                result = 0
+            else:
+                result = (result * arg_abs) // math.gcd(result, arg_abs)
+        return result
+
+    def builtin_sqrt(x):
+        """(sqrt x) -> square root as a float.
+
+        Argument must be a number (int or float, not boolean).
+        Negative argument raises EvalError (no complex numbers).
+        Result is always a float.
+        """
+        if isinstance(x, bool) or not isinstance(x, (int, float)):
+            raise EvalError(f"sqrt: argument must be a number, got {type(x).__name__}")
+        if x < 0:
+            raise EvalError("sqrt: cannot take square root of negative number")
+        return math.sqrt(x)
+
+    def builtin_floor(x):
+        """(floor x) -> largest integer <= x.
+
+        Argument must be a number (int or float, not boolean).
+        Result is always an integer.
+        """
+        if isinstance(x, bool) or not isinstance(x, (int, float)):
+            raise EvalError(f"floor: argument must be a number, got {type(x).__name__}")
+        return math.floor(x)
+
+    def builtin_ceiling(x):
+        """(ceiling x) -> smallest integer >= x.
+
+        Argument must be a number (int or float, not boolean).
+        Result is always an integer.
+        """
+        if isinstance(x, bool) or not isinstance(x, (int, float)):
+            raise EvalError(f"ceiling: argument must be a number, got {type(x).__name__}")
+        return math.ceil(x)
+
+    def builtin_round(x):
+        """(round x) -> nearest integer using round-half-to-even (banker's rounding).
+
+        Argument must be a number (int or float, not boolean).
+        Result is always an integer.
+        """
+        if isinstance(x, bool) or not isinstance(x, (int, float)):
+            raise EvalError(f"round: argument must be a number, got {type(x).__name__}")
+        return round(x)
+
+    def builtin_truncate(x):
+        """(truncate x) -> integer part toward zero.
+
+        Argument must be a number (int or float, not boolean).
+        Result is always an integer.
+        """
+        if isinstance(x, bool) or not isinstance(x, (int, float)):
+            raise EvalError(f"truncate: argument must be a number, got {type(x).__name__}")
+        return math.trunc(x)
 
     def builtin_abs(x):
         """(abs x) -> absolute value."""
@@ -615,6 +742,15 @@ def builtin_table(apply_proc):
         "*": builtin_mul,
         "/": builtin_div,
         "modulo": builtin_modulo,
+        "quotient": builtin_quotient,
+        "remainder": builtin_remainder,
+        "gcd": builtin_gcd,
+        "lcm": builtin_lcm,
+        "sqrt": builtin_sqrt,
+        "floor": builtin_floor,
+        "ceiling": builtin_ceiling,
+        "round": builtin_round,
+        "truncate": builtin_truncate,
         "abs": builtin_abs,
         "min": builtin_min,
         "max": builtin_max,
