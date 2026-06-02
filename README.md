@@ -83,6 +83,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/metacircular.pebble` — A tiny Lisp interpreter written in Pebble, supporting lambda, closures, recursion, and define
 - `examples/life.pebble` — Conway's Game of Life on a mutable-vector grid
 - `examples/simplify.pebble` — Symbolic algebra simplifier using `match` pattern-matching to rewrite arithmetic expressions
+- `examples/rpn.pebble` — Reverse Polish Notation calculator using a vector as a stack
 
 Run any example directly:
 
@@ -90,7 +91,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py` and `tests/test_bst.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, and `tests/test_rpn.py`.
 
 ## Design
 

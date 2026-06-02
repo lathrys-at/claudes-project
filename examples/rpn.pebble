@@ -1,0 +1,57 @@
+;;; Reverse Polish Notation (RPN) calculator
+;;; Evaluates arithmetic expressions in RPN using a mutable vector as the operand stack
+;;; Example: (rpn "3 4 +") evaluates to 7
+
+(define (rpn expr-string)
+  (let ((stack (vector))
+        (tokens (filter (lambda (t) (not (= t ""))) (string-split expr-string " "))))
+
+    ; Process each token
+    (for-each
+      (lambda (token)
+        (let ((num (string->number token)))
+          (cond
+            ; If token is a number, push it onto the stack
+            ((not (= num false))
+             (vector-push! stack num))
+
+            ; If token is +, -, or *, pop two operands and push result
+            ((= token "+")
+             (if (< (vector-length stack) 2)
+               (error "not enough operands for +")
+               (let ((right (vector-pop! stack))
+                     (left (vector-pop! stack)))
+                 (vector-push! stack (+ left right)))))
+
+            ((= token "-")
+             (if (< (vector-length stack) 2)
+               (error "not enough operands for -")
+               (let ((right (vector-pop! stack))
+                     (left (vector-pop! stack)))
+                 (vector-push! stack (- left right)))))
+
+            ((= token "*")
+             (if (< (vector-length stack) 2)
+               (error "not enough operands for *")
+               (let ((right (vector-pop! stack))
+                     (left (vector-pop! stack)))
+                 (vector-push! stack (* left right)))))
+
+            ; Unknown token
+            (else
+             (error (string-append "unknown token: " token))))))
+      tokens)
+
+    ; After processing all tokens, stack must contain exactly one value
+    (cond
+      ((= (vector-length stack) 0)
+       (error "empty stack: no result"))
+      ((> (vector-length stack) 1)
+       (error "leftover operands on stack"))
+      (else
+       (vector-ref stack 0)))))
+
+; Demo: evaluate three sample RPN expressions
+(displayln (rpn "3 4 +"))
+(displayln (rpn "3 4 + 5 *"))
+(displayln (rpn "10 2 3 - *"))
