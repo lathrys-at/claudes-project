@@ -268,6 +268,76 @@
     nil
     lst))
 
+; take-while: returns the longest prefix of lst whose elements all satisfy pred
+; Uses a tail-recursive helper with accumulator to avoid stack overflow
+(define (take-while pred lst)
+  (define (take-while-helper pred lst acc)
+    (if (null? lst)
+      (reverse acc)
+      (if (pred (car lst))
+        (take-while-helper pred (cdr lst) (cons (car lst) acc))
+        (reverse acc))))
+  (take-while-helper pred lst nil))
+
+; drop-while: returns lst with the leading run of pred-satisfying elements removed
+; Returns lst starting from the first element that does NOT satisfy pred
+(define (drop-while pred lst)
+  (if (null? lst)
+    nil
+    (if (pred (car lst))
+      (drop-while pred (cdr lst))
+      lst)))
+
+; find: returns the first element of lst satisfying pred, or false if none does
+(define (find pred lst)
+  (if (null? lst)
+    false
+    (if (pred (car lst))
+      (car lst)
+      (find pred (cdr lst)))))
+
+; any?: returns true iff at least one element of lst satisfies pred
+; For the empty list, returns false
+(define (any? pred lst)
+  (if (null? lst)
+    false
+    (if (pred (car lst))
+      true
+      (any? pred (cdr lst)))))
+
+; all?: returns true iff every element of lst satisfies pred
+; For the empty list, returns true (vacuously)
+(define (all? pred lst)
+  (if (null? lst)
+    true
+    (if (pred (car lst))
+      (all? pred (cdr lst))
+      false)))
+
+; count-if: returns the number of elements of lst that satisfy pred
+; Uses foldl for stack-safety
+(define (count-if pred lst)
+  (foldl
+    (lambda (acc elem)
+      (if (pred elem)
+        (+ acc 1)
+        acc))
+    0
+    lst))
+
+; partition: returns a two-element list (list yes no) where
+; yes is the list of elements satisfying pred and no is the list of those that do not
+; Each preserves the original relative order
+; Uses a tail-recursive helper with two accumulators, then reverses each
+(define (partition pred lst)
+  (define (partition-helper pred lst yes-acc no-acc)
+    (if (null? lst)
+      (list (reverse yes-acc) (reverse no-acc))
+      (if (pred (car lst))
+        (partition-helper pred (cdr lst) (cons (car lst) yes-acc) no-acc)
+        (partition-helper pred (cdr lst) yes-acc (cons (car lst) no-acc)))))
+  (partition-helper pred lst nil nil))
+
 ; ===== STRING FUNCTIONS =====
 
 ; string-join: joins a list of strings with a separator

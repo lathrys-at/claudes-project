@@ -537,6 +537,13 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `nth` — zero-indexed element access
 - `range` — lazy or eager integer ranges; supports both tail-call optimization and large ranges
 - `take`, `drop` — prefix/suffix operations
+- `take-while` — longest prefix of list whose elements satisfy a predicate
+- `drop-while` — list with leading elements satisfying predicate removed
+- `find` — first element satisfying a predicate, or false if none found
+- `any?` — true iff at least one element satisfies a predicate
+- `all?` — true iff every element satisfies a predicate (vacuously true for empty list)
+- `count-if` — count of elements satisfying a predicate
+- `partition` — split list into two: elements satisfying predicate and those that don't
 - `sum`, `product` — aggregate numeric lists
 - `reduce` — left fold over non-empty lists
 - `map2` — two-argument map (parallel iteration)
