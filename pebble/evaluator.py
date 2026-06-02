@@ -101,6 +101,56 @@ def is_truthy(value) -> bool:
     return True
 
 
+def expand_quasi(template, env, depth):
+    """Expand a quasiquote template at the given depth.
+
+    Args:
+        template: The template to expand.
+        env: The Environment for unquote evaluation.
+        depth: The current quasiquote nesting depth (starts at 1).
+
+    Returns:
+        The expanded template.
+
+    Raises:
+        EvalError: For invalid unquote-splicing or other errors.
+    """
+    if isinstance(template, PebbleList):
+        # Check for (unquote ...)
+        if (len(template) == 2 and isinstance(template[0], Symbol)
+            and template[0] == "unquote"):
+            if depth == 1:
+                return seval(template[1], env)
+            else:
+                return PebbleList([Symbol("unquote"), expand_quasi(template[1], env, depth - 1)])
+
+        # Check for (quasiquote ...)
+        if (len(template) == 2 and isinstance(template[0], Symbol)
+            and template[0] == "quasiquote"):
+            return PebbleList([Symbol("quasiquote"), expand_quasi(template[1], env, depth + 1)])
+
+        # Otherwise, expand each element
+        result = []
+        for elem in template:
+            # Check for (unquote-splicing ...)
+            if (isinstance(elem, PebbleList) and len(elem) == 2
+                and isinstance(elem[0], Symbol) and elem[0] == "unquote-splicing"):
+                if depth == 1:
+                    spliced = seval(elem[1], env)
+                    if not isinstance(spliced, PebbleList):
+                        raise EvalError(f"unquote-splicing: expected a list, got {type(spliced).__name__}")
+                    result.extend(spliced)
+                else:
+                    result.append(PebbleList([Symbol("unquote-splicing"), expand_quasi(elem[1], env, depth - 1)]))
+            else:
+                result.append(expand_quasi(elem, env, depth))
+
+        return PebbleList(result)
+
+    # Non-list: return unchanged
+    return template
+
+
 def seval(expr, env):
     """Evaluate a Pebble expression.
 
@@ -131,6 +181,11 @@ def seval(expr, env):
                 if len(expr) != 2:
                     raise EvalError(f"quote requires exactly 1 argument, got {len(expr) - 1}")
                 return expr[1]
+
+            elif head == "quasiquote":
+                if len(expr) != 2:
+                    raise EvalError(f"quasiquote requires exactly 1 argument, got {len(expr) - 1}")
+                return expand_quasi(expr[1], env, 1)
 
             elif head == "if":
                 if len(expr) < 3 or len(expr) > 4:

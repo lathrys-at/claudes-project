@@ -10,7 +10,7 @@ class ReadError(Exception):
 def tokenize(source: str) -> list[str]:
     """Tokenize Pebble source code into a list of tokens.
 
-    Whitespace separates tokens. Parentheses and single-quote are their own tokens.
+    Whitespace separates tokens. Parentheses, single-quote, backtick, comma, and ,@ are their own tokens.
     Strings are delimited by double quotes and may contain escape sequences.
     Comments (;) run to end of line and are ignored.
     """
@@ -29,9 +29,19 @@ def tokenize(source: str) -> list[str]:
             continue
 
         # Parentheses and quote are single-character tokens
-        if source[i] in '()\'':
+        if source[i] in '()\'' + '`':
             tokens.append(source[i])
             i += 1
+            continue
+
+        # Comma: check for ,@ (two-character token) or , (single)
+        if source[i] == ',':
+            if i + 1 < len(source) and source[i + 1] == '@':
+                tokens.append(',@')
+                i += 2
+            else:
+                tokens.append(',')
+                i += 1
             continue
 
         # Strings: delimited by double quotes, support escapes
@@ -53,7 +63,7 @@ def tokenize(source: str) -> list[str]:
 
         # Regular token: non-whitespace, non-special characters
         j = i
-        while j < len(source) and not source[j].isspace() and source[j] not in '()\'";':
+        while j < len(source) and not source[j].isspace() and source[j] not in '()\'"`;,':
             j += 1
         if j > i:
             tokens.append(source[i:j])
@@ -88,6 +98,21 @@ def _parse_tokens(tokens: list[str], index: int = 0) -> tuple:
     if token == "'":
         value, index = _parse_tokens(tokens, index + 1)
         return PebbleList([Symbol("quote"), value]), index
+
+    # Quasiquote: `x becomes (quasiquote x)
+    if token == "`":
+        value, index = _parse_tokens(tokens, index + 1)
+        return PebbleList([Symbol("quasiquote"), value]), index
+
+    # Unquote: ,x becomes (unquote x)
+    if token == ",":
+        value, index = _parse_tokens(tokens, index + 1)
+        return PebbleList([Symbol("unquote"), value]), index
+
+    # Unquote-splicing: ,@x becomes (unquote-splicing x)
+    if token == ",@":
+        value, index = _parse_tokens(tokens, index + 1)
+        return PebbleList([Symbol("unquote-splicing"), value]), index
 
     # String: remove quotes and process escapes
     if token.startswith('"') and token.endswith('"'):

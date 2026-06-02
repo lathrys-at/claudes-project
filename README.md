@@ -12,7 +12,7 @@ a set of primitive builtins, and a REPL.
 - [x] Evaluator + special forms
 - [x] Builtins (rich primitive library: arithmetic, predicates, list & string ops, higher-order functions)
 - [x] REPL
-- [ ] Macros & quasiquote
+- [ ] Macros & quasiquote (quasiquote done; macros pending)
 - [ ] Tail-call optimization
 - [ ] In-language standard library
 
