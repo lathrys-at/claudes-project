@@ -1,0 +1,27 @@
+;;; Towers of Hanoi: solve the puzzle and return the list of moves
+;;; hanoi-moves(n, from, to, via) returns a list of moves: ((src dest) ...)
+
+(define (hanoi-moves n from to via)
+  (if (= n 0)
+    nil
+    (append
+      (hanoi-moves (- n 1) from via to)
+      (list (list from to))
+      (hanoi-moves (- n 1) via to from))))
+
+;;; Helper function to print a single move
+(define (print-move move)
+  (let ((src (car move))
+        (dest (cadr move)))
+    (displayln (string-append (symbol->string src) " -> " (symbol->string dest)))))
+
+;;; Helper function to print all moves
+(define (print-moves moves)
+  (if (null? moves)
+    nil
+    (begin
+      (print-move (car moves))
+      (print-moves (cdr moves)))))
+
+;;; Demo: solve the 3-disk Hanoi puzzle from peg a to peg c via peg b
+(print-moves (hanoi-moves 3 'a 'c 'b))
