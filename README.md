@@ -643,6 +643,10 @@ Pebble includes a lazy streams library built on `delay`/`force` promises. A lazy
 - `capitalize` — return string with first character uppercased and rest unchanged
 - `string-pad-left` — pad string on the left to a given width with a fill character
 - `string-pad-right` — pad string on the right to a given width with a fill character
+- `words` — `(words s)` splits the string `s` on runs of whitespace (spaces, tabs, newlines) into a list of non-empty words. Leading, trailing, and repeated whitespace are ignored and produce no empty strings. A string with no words (empty or all whitespace) yields nil. Example: `(words "  hello   world  ")` → `("hello" "world")`
+- `unwords` — `(unwords lst)` joins a list of strings with single spaces between them. The empty list yields an empty string. Example: `(unwords (list "hello" "world"))` → `"hello world"`
+- `lines` — `(lines s)` splits the string `s` on newline characters `\n` into a list of line strings, preserving empty segments. This is equivalent to `(string-split s "\n")`. A trailing newline produces a trailing empty string in the result. Example: `(lines "a\nb\nc")` → `("a" "b" "c")` and `(lines "a\n")` → `("a" "")`
+- `unlines` — `(unlines lst)` joins a list of strings with newline characters between them. The empty list yields an empty string. This is equivalent to `(string-join lst "\n")`. Example: `(unlines (list "a" "b" "c"))` → `"a\nb\nc"`
 - `flatten` — flatten arbitrarily-nested lists
 
 **I/O:**

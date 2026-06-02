@@ -705,6 +705,48 @@
 (define (string-reverse s)
   (list->string (reverse (string->list s))))
 
+; words: (words s) splits the string s on runs of whitespace into a list of non-empty words
+; Leading/trailing/repeated whitespace produces NO empty strings in the result.
+; A string with no words (empty or all whitespace) yields nil.
+(define (words s)
+  (define (skip-whitespace s)
+    (if (= (string-length s) 0)
+      ""
+      (if (char-whitespace? (substring s 0 1))
+        (skip-whitespace (substring s 1 (string-length s)))
+        s)))
+  (define (take-word s)
+    (if (= (string-length s) 0)
+      ""
+      (if (char-whitespace? (substring s 0 1))
+        ""
+        (string-append
+          (substring s 0 1)
+          (take-word (substring s 1 (string-length s)))))))
+  (define (words-helper s acc)
+    (let ((trimmed (skip-whitespace s)))
+      (if (= (string-length trimmed) 0)
+        (if (null? acc) nil (reverse acc))
+        (let ((word (take-word trimmed)))
+          (let ((rest (substring trimmed (string-length word) (string-length trimmed))))
+            (words-helper rest (cons word acc)))))))
+  (words-helper s nil))
+
+; unwords: (unwords lst) joins a list of strings into a single string separated by a single space
+; The empty list yields the empty string "".
+(define (unwords lst)
+  (string-join lst " "))
+
+; lines: (lines s) splits the string s on newline characters into a list of line strings
+; KEEPING empty segments (i.e. equivalent to splitting on "\n").
+(define (lines s)
+  (string-split s "\n"))
+
+; unlines: (unlines lst) joins a list of strings with newline characters between them
+; Equivalent to joining with "\n". The empty list yields "".
+(define (unlines lst)
+  (string-join lst "\n"))
+
 ; capitalize: (capitalize s) returns s with its FIRST character uppercased and the rest UNCHANGED
 (define (capitalize s)
   (if (= (string-length s) 0)
