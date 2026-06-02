@@ -356,3 +356,169 @@ class TestNamedLet:
             env
         )
         assert result == 42
+
+
+class TestIfLet:
+    """Tests for if-let binding macro."""
+
+    def test_if_let_truthy_uses_then_branch(self):
+        """if-let with truthy value should evaluate THEN branch with VAR in scope."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = "(if-let (x 5) (* x 2) 0)"
+        result = eval_source(source, env)
+        assert result == 10
+
+    def test_if_let_falsy_false_uses_else_branch(self):
+        """if-let with false should evaluate ELSE branch."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = "(if-let (x false) (* x 2) 99)"
+        result = eval_source(source, env)
+        assert result == 99
+
+    def test_if_let_falsy_nil_uses_else_branch(self):
+        """if-let with nil should evaluate ELSE branch."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = '(if-let (x nil) "yes" "no")'
+        result = eval_source(source, env)
+        assert result == "no"
+
+    def test_if_let_no_else_falsy_returns_nil(self):
+        """if-let without ELSE, when false, returns nil."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = "(if-let (x false) 1)"
+        result = eval_source(source, env)
+        assert result == NIL
+
+    def test_if_let_zero_is_truthy(self):
+        """Pebble truthiness: 0 is truthy, not falsy."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = '(if-let (x 0) "truthy" "falsy")'
+        result = eval_source(source, env)
+        assert result == "truthy"
+
+    def test_if_let_empty_string_is_truthy(self):
+        """Pebble truthiness: empty string is truthy, not falsy."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = '(if-let (x "") "t" "f")'
+        result = eval_source(source, env)
+        assert result == "t"
+
+    def test_if_let_var_in_scope_then_branch(self):
+        """VAR should be bound and available in THEN branch."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = "(if-let (x 5) (+ x 10) 0)"
+        result = eval_source(source, env)
+        assert result == 15
+
+    def test_if_let_single_evaluation_of_expr(self):
+        """EXPR should be evaluated exactly once, checking via side effect."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = """
+        (define counter 0)
+        (if-let (x (begin (set! counter (+ counter 1)) 5))
+          counter
+          0)
+        """
+        result = eval_source(source, env)
+        # counter should be 1 after one if-let with truthy result
+        assert result == 1
+
+    def test_if_let_single_evaluation_falsy_case(self):
+        """EXPR should be evaluated exactly once even in falsy case."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = """
+        (define counter 0)
+        (if-let (x (begin (set! counter (+ counter 1)) false))
+          "yes"
+          counter)
+        """
+        result = eval_source(source, env)
+        # counter should be 1 after if-let evaluation
+        assert result == 1
+
+
+class TestWhenLet:
+    """Tests for when-let binding macro."""
+
+    def test_when_let_truthy_returns_body_value(self):
+        """when-let with truthy value should evaluate body and return last form's value."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = "(when-let (x 5) (* x x))"
+        result = eval_source(source, env)
+        assert result == 25
+
+    def test_when_let_falsy_returns_nil(self):
+        """when-let with falsy value should return nil."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = "(when-let (x false) (* x x))"
+        result = eval_source(source, env)
+        assert result == NIL
+
+    def test_when_let_falsy_body_does_not_run(self):
+        """when-let with falsy value should NOT execute body (verify via side effect)."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = """
+        (define counter 0)
+        (when-let (x false)
+          (set! counter (+ counter 1)))
+        counter
+        """
+        result = eval_source(source, env)
+        # counter should still be 0 because body did not run
+        assert result == 0
+
+    def test_when_let_multi_form_body_returns_last(self):
+        """when-let with multiple body forms should return the last form's value."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = """
+        (define counter 0)
+        (when-let (x 5)
+          (set! counter (+ counter 1))
+          (set! counter (+ counter 10))
+          counter)
+        """
+        result = eval_source(source, env)
+        # should return the final value of counter (11), and counter should have been modified
+        assert result == 11
+
+    def test_when_let_zero_is_truthy(self):
+        """Pebble truthiness: 0 is truthy in when-let."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = '(when-let (x 0) "ran")'
+        result = eval_source(source, env)
+        assert result == "ran"
+
+    def test_when_let_var_in_scope(self):
+        """VAR should be bound and available in body."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = "(when-let (x 5) (+ x 3))"
+        result = eval_source(source, env)
+        assert result == 8
+
+    def test_when_let_single_evaluation_of_expr(self):
+        """EXPR should be evaluated exactly once, checking via side effect."""
+        env = make_global_env()
+        from pebble.evaluator import eval_source
+        source = """
+        (define counter 0)
+        (when-let (x (begin (set! counter (+ counter 1)) 5))
+          (+ counter x))
+        """
+        result = eval_source(source, env)
+        # counter incremented once, then we add counter (1) + x (5) = 6
+        assert result == 6

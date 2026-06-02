@@ -509,6 +509,7 @@ Pebble includes a standard library written in the Pebble language itself, automa
 
 **Macros:**
 - `when` and `unless` — conditional evaluation with optional body forms
+- `if-let` and `when-let` — ergonomic binding macros for conditionals with optional values
 - `and` and `or` — short-circuiting logical operators with variadic arity
 - `cond` — multi-branch conditional with optional else clause
 - `let*` — sequential/nested let bindings

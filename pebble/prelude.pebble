@@ -11,6 +11,30 @@
 (define-macro (unless test . body)
   `(if ,test nil (begin ,@body)))
 
+; if-let: (if-let (VAR EXPR) THEN ELSE) or (if-let (VAR EXPR) THEN)
+; Bind VAR to the result of EXPR (evaluated exactly once); if truthy, evaluate THEN with VAR in scope;
+; otherwise evaluate ELSE (or return nil if no ELSE). Essential for safe chaining with optional values.
+(define-macro (if-let binding then-form . else-forms)
+  (let ((var (car binding))
+        (expr (cadr binding))
+        (expr-gensym (gensym)))
+    `(let ((,expr-gensym ,expr))
+       (let ((,var ,expr-gensym))
+         (if ,var
+           ,then-form
+           ,(if (null? else-forms) nil (car else-forms)))))))
+
+; when-let: (when-let (VAR EXPR) BODY...)
+; Bind VAR to the result of EXPR (evaluated exactly once); if truthy, evaluate BODY forms in order
+; with VAR in scope and return the value of the last one; otherwise return nil.
+(define-macro (when-let binding . body)
+  (let ((var (car binding))
+        (expr (cadr binding))
+        (expr-gensym (gensym)))
+    `(let ((,expr-gensym ,expr))
+       (let ((,var ,expr-gensym))
+         (if ,var (begin ,@body) nil)))))
+
 ; and: variadic short-circuiting logical AND
 (define-macro (and . args)
   (if (null? args)
