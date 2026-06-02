@@ -1385,3 +1385,25 @@
         (append acc (repeat elem count))))
     nil
     encoded))
+
+; ===== BINARY SEARCH =====
+
+; binary-search: (binary-search vec target) performs binary search over the ASCENDING-SORTED vector vec
+; for target, returning the 0-based INDEX where target is found, or -1 if target is not present.
+; Uses a tail-recursive named let loop for stack-safety.
+; Assumes vec is sorted in ascending order.
+(define (binary-search vec target)
+  (let ((len (vector-length vec)))
+    (if (= len 0)
+      -1
+      (let loop ((lo 0) (hi (- len 1)))
+        (if (> lo hi)
+          -1
+          (let ((mid (quotient (+ lo hi) 2)))
+            (let ((mid-val (vector-ref vec mid)))
+              (if (= mid-val target)
+                mid
+                (if (< mid-val target)
+                  (loop (+ mid 1) hi)
+                  (loop lo (- mid 1)))))))))))
+

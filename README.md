@@ -607,6 +607,7 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `vector-for-each` — `(vector-for-each f v)` applies `(f element)` to each element of `v` in order for side effects, returning `nil`.
 - `vector-copy` — `(vector-copy v)` returns an independent copy of vector `v` with the same elements. Mutating the copy does not affect the original, and vice versa.
 - `vector-fill!` — `(vector-fill! v x)` sets every element of `v` to `x` in place, mutating the vector. The change is visible through all references to `v`, and the function returns `nil`.
+- `binary-search` — `(binary-search vec target)` performs binary search over an ascending-sorted vector `vec` for `target`, returning the 0-based index where `target` is found, or `-1` if `target` is not present. Uses tail-recursive iteration for stack-safety. Assumes `vec` is sorted in ascending order. Example: `(binary-search (vector 1 3 5 7 9) 5)` → `2`, `(binary-search (vector 1 3 5 7 9) 4)` → `-1`
 
 **Lazy evaluation (promises):**
 - `delay` — `(delay EXPR)` is a macro that creates a promise representing the deferred computation of `EXPR`. The expression is NOT evaluated immediately; it is captured in the current lexical environment and only evaluated when the promise is forced.
