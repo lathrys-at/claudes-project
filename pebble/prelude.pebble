@@ -707,6 +707,26 @@
     (make-hash)
     (hash->list m)))
 
+; frequencies: (frequencies lst) returns a hash map mapping each distinct element of lst
+; to the number of times it occurs. (frequencies nil) is an empty hash map.
+(define (frequencies lst)
+  (foldl
+    (lambda (acc elem)
+      (hash-update acc elem inc 0))
+    (make-hash)
+    lst))
+
+; group-by: (group-by f lst) returns a hash map mapping each distinct key (f x)
+; to the list of elements x of lst that produced that key, with each group's
+; elements in their original relative order. (group-by f nil) is an empty hash map.
+(define (group-by f lst)
+  (foldl
+    (lambda (acc elem)
+      (let ((key (f elem)))
+        (hash-update acc key (lambda (group) (append group (list elem))) nil)))
+    (make-hash)
+    lst))
+
 ; ===== PATTERN MATCHING =====
 
 ; match: pattern-matching macro that supports literal, variable, wildcard, list, and tail patterns

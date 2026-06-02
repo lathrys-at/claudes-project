@@ -351,6 +351,8 @@ All hash map operations return new maps and leave the originals unchanged (immut
 - `hash-merge` — `(hash-merge m1 m2)` returns a new map containing all entries from both `m1` and `m2`. When a key appears in both, the value from `m2` wins. Neither input is modified.
 - `hash-map-values` — `(hash-map-values f m)` returns a new map with the same keys as `m`, but each value `v` is replaced by `(f v)`. Useful for transforming all values uniformly.
 - `hash-filter` — `(hash-filter pred m)` returns a new map containing only entries `(k v)` where `(pred k v)` is truthy. The predicate receives both key and value as arguments.
+- `frequencies` — `(frequencies lst)` returns a hash map mapping each distinct element of `lst` to the number of times it occurs. Useful for frequency analysis and counting occurrences.
+- `group-by` — `(group-by f lst)` returns a hash map mapping each distinct key `(f x)` to a list of all elements `x` from `lst` that produced that key, with elements in their original relative order. Useful for partitioning data by computed keys.
 
 ### Mutable Vectors
 
