@@ -272,7 +272,7 @@
         (if (hash-has? cache args)
           (hash-ref cache args)
           (let ((result (apply f args)))
-            (vector-set! cache-cell 0 (hash-set cache args result))
+            (vector-set! cache-cell 0 (hash-set (vector-ref cache-cell 0) args result))
             result))))))
 
 ; ===== LIST FUNCTIONS =====

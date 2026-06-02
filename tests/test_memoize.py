@@ -119,6 +119,39 @@ class TestMemoizedRecursion:
         result = eval_in_env("(fib 30)", env)
         assert result == 832040
 
+    def test_memoized_fib_25_efficiency(self):
+        """Test that recursive memoization is efficient (O(n) not exponential).
+
+        This test proves that recursive calls are actually cached, not just
+        that the final result is correct. The underlying function should be
+        invoked at most once per distinct argument (26 times for fib 0..25).
+        Without proper caching of recursive sub-calls, this would exponential.
+        """
+        env = make_global_env()
+
+        # Define a counter and memoized recursive function
+        eval_in_env("(define calls 0)", env)
+        eval_in_env(
+            """(define fib (memoize (lambda (n)
+              (begin
+                (set! calls (+ calls 1))
+                (if (< n 2)
+                  n
+                  (+ (fib (- n 1)) (fib (- n 2))))))))""",
+            env
+        )
+
+        # Compute fib(25)
+        result = eval_in_env("(fib 25)", env)
+        calls = eval_in_env("calls", env)
+
+        # Check correctness
+        assert result == 75025
+
+        # Check efficiency: should be invoked at most 26 times (once per distinct argument 0..25)
+        # Without the bug fix, this would be in the hundreds of thousands (exponential)
+        assert calls <= 26, f"fib(25) called underlying function {calls} times; expected <= 26 (exponential growth detected)"
+
 
 class TestMemoizeIndependentCaches:
     """Test that different memoized functions have independent caches."""
