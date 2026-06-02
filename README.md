@@ -13,7 +13,7 @@ a set of primitive builtins, and a REPL.
 - [x] Builtins (rich primitive library: arithmetic, predicates, list & string ops, higher-order functions)
 - [x] REPL
 - [x] Macros & quasiquote
-- [ ] Tail-call optimization
+- [x] Tail-call optimization (tail calls execute in bounded stack space via trampolining)
 - [ ] In-language standard library
 
 ## Usage

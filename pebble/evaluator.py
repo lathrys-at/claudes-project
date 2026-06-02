@@ -8,6 +8,16 @@ class EvalError(Exception):
     pass
 
 
+# Trampoline objects for tail-call optimization
+class _TailCall:
+    """Represents a tail call to be evaluated."""
+    __slots__ = ('expr', 'env')
+
+    def __init__(self, expr, env):
+        self.expr = expr
+        self.env = env
+
+
 def parse_param_spec(spec):
     """Parse a lambda/macro parameter specification.
     Returns a tuple (fixed_params, rest_param) where fixed_params is a list of
@@ -255,15 +265,18 @@ def expand_quasi(template, env, depth):
     return template
 
 
-def seval(expr, env):
-    """Evaluate a Pebble expression.
+def _seval_internal(expr, env):
+    """Internal evaluation function that may return _TailCall objects.
+
+    This is the core evaluator that handles tail position detection.
+    Do not call this directly from user code; use seval instead.
 
     Args:
         expr: A Pebble value to evaluate.
         env: The Environment in which to evaluate it.
 
     Returns:
-        The result of evaluation.
+        Either a final value or a _TailCall object for further evaluation.
 
     Raises:
         EvalError: For various evaluation errors.
@@ -294,24 +307,53 @@ def seval(expr, env):
             elif head == "if":
                 if len(expr) < 3 or len(expr) > 4:
                     raise EvalError(f"if requires 2 or 3 arguments, got {len(expr) - 1}")
-                test_val = seval(expr[1], env)
+                test_val = _trampoline(_seval_internal(expr[1], env))
                 if is_truthy(test_val):
-                    return seval(expr[2], env)
+                    # Tail call: return it for the trampoline to execute
+                    return _TailCall(expr[2], env)
                 else:
                     if len(expr) == 4:
-                        return seval(expr[3], env)
+                        # Tail call: return it for the trampoline to execute
+                        return _TailCall(expr[3], env)
                     else:
                         return NIL
 
             elif head == "define":
-                if len(expr) != 3:
+                if len(expr) < 2:
                     raise EvalError(f"define requires exactly 2 arguments, got {len(expr) - 1}")
-                name = expr[1]
-                if not isinstance(name, Symbol):
-                    raise EvalError(f"define: first argument must be a symbol, got {type(name).__name__}")
-                value = seval(expr[2], env)
-                env.define(name, value)
-                return name
+
+                # Check if it's function-style (a) or value-style (b)
+                if isinstance(expr[1], PebbleList):
+                    # Function-style: (define (name param1 param2 ...) body...)
+                    params_and_name = expr[1]
+                    if len(params_and_name) == 0:
+                        raise EvalError("define: function name and parameters list cannot be empty")
+
+                    func_name = params_and_name[0]
+                    if not isinstance(func_name, Symbol):
+                        raise EvalError(f"define: function name must be a symbol, got {type(func_name).__name__}")
+
+                    # Parse the parameters (everything after the name)
+                    param_spec = PebbleList(params_and_name[1:])
+                    fixed, rest = parse_param_spec(param_spec)
+
+                    body = list(expr[2:])
+                    procedure = Procedure(fixed, body, env, rest=rest)
+                    env.define(func_name, procedure)
+                    return func_name
+
+                elif isinstance(expr[1], Symbol):
+                    # Value-style: (define name value-expr)
+                    if len(expr) != 3:
+                        raise EvalError(f"define requires exactly 2 arguments, got {len(expr) - 1}")
+
+                    name = expr[1]
+                    value = _trampoline(_seval_internal(expr[2], env))
+                    env.define(name, value)
+                    return name
+
+                else:
+                    raise EvalError(f"define: first argument must be a symbol, got {type(expr[1]).__name__}")
 
             elif head == "define-macro":
                 if len(expr) < 2:
@@ -345,7 +387,7 @@ def seval(expr, env):
 
                     macro_name = expr[1]
                     transformer_expr = expr[2]
-                    transformer = seval(transformer_expr, env)
+                    transformer = _trampoline(_seval_internal(transformer_expr, env))
 
                     if not isinstance(transformer, Procedure):
                         raise EvalError("define-macro: transformer must be a procedure")
@@ -363,7 +405,7 @@ def seval(expr, env):
                 name = expr[1]
                 if not isinstance(name, Symbol):
                     raise EvalError(f"set!: first argument must be a symbol, got {type(name).__name__}")
-                value = seval(expr[2], env)
+                value = _trampoline(_seval_internal(expr[2], env))
                 env.set(name, value)
                 return value
 
@@ -388,7 +430,7 @@ def seval(expr, env):
                     name, value_expr = binding[0], binding[1]
                     if not isinstance(name, Symbol):
                         raise EvalError(f"let: binding name must be a symbol, got {type(name).__name__}")
-                    binding_dict[name] = seval(value_expr, env)
+                    binding_dict[name] = _trampoline(_seval_internal(value_expr, env))
 
                 # Create new env, define the bindings, evaluate body
                 new_env = Environment(parent=env)
@@ -398,47 +440,122 @@ def seval(expr, env):
                 body = expr[2:]
                 if len(body) == 0:
                     return NIL
-                result = NIL
-                for form in body:
-                    result = seval(form, new_env)
-                return result
+                # Process body: only the last form is in tail position
+                for form in body[:-1]:
+                    _trampoline(_seval_internal(form, new_env))
+                # The last form is in tail position
+                return _TailCall(body[-1], new_env)
 
             elif head == "begin":
                 body = expr[1:]
                 if len(body) == 0:
                     return NIL
-                result = NIL
-                for form in body:
-                    result = seval(form, env)
-                return result
+                # Process body: only the last form is in tail position
+                for form in body[:-1]:
+                    _trampoline(_seval_internal(form, env))
+                # The last form is in tail position
+                return _TailCall(body[-1], env)
 
             # If we reach here, head is a Symbol but no special form matched
             # Check for macro expansion
             maybe_macro = env.try_lookup(head)
             if isinstance(maybe_macro, Macro):
                 # Expand the macro: apply transformer to unevaluated args
-                expansion = apply_proc(maybe_macro.transformer, list(expr[1:]))
-                return seval(expansion, env)
+                # Use specialized macro evaluation to reduce stack depth
+                expansion = _eval_macro_transformer(maybe_macro.transformer, list(expr[1:]))
+                # The macro expansion is evaluated in tail position
+                return _TailCall(expansion, env)
 
         # Not a special form and not a macro (or head is not a Symbol): it's a function call
-        # Evaluate the head and all arguments
-        proc = seval(head, env)
-        args = [seval(arg, env) for arg in expr[1:]]
-        return apply_proc(proc, args)
+        # Evaluate the head and all arguments (not in tail position)
+        proc = _trampoline(_seval_internal(head, env))
+        args = [_trampoline(_seval_internal(arg, env)) for arg in expr[1:]]
+        return _apply_proc_internal(proc, args)
 
     # Self-evaluating: numbers, strings, booleans, etc.
     return expr
 
 
-def apply_proc(proc, args):
-    """Apply a procedure to arguments.
+def _trampoline(result):
+    """Execute tail calls until a final value is reached.
+
+    Args:
+        result: Either a final value or a _TailCall object.
+
+    Returns:
+        The final value after all tail calls are executed.
+    """
+    while isinstance(result, _TailCall):
+        result = _seval_internal(result.expr, result.env)
+    return result
+
+
+def seval(expr, env):
+    """Evaluate a Pebble expression.
+
+    Args:
+        expr: A Pebble value to evaluate.
+        env: The Environment in which to evaluate it.
+
+    Returns:
+        The result of evaluation.
+
+    Raises:
+        EvalError: For various evaluation errors.
+    """
+    result = _seval_internal(expr, env)
+    return _trampoline(result)
+
+
+def _eval_macro_transformer(transformer, args):
+    """Evaluate a macro transformer without full TCO machinery.
+
+    This is a specialized function for macro expansion that avoids nested
+    trampoline loops to reduce stack depth.
+
+    Args:
+        transformer: A Procedure (the macro transformer).
+        args: A list of unevaluated arguments.
+
+    Returns:
+        The expanded form.
+    """
+    # Bind parameters
+    if transformer.rest is None:
+        if len(args) != len(transformer.params):
+            raise EvalError(f"expected {len(transformer.params)} arguments, got {len(args)}")
+        call_env = Environment(parent=transformer.env)
+        for param, arg in zip(transformer.params, args):
+            call_env.define(param, arg)
+    else:
+        if len(args) < len(transformer.params):
+            raise EvalError(f"expected at least {len(transformer.params)} arguments, got {len(args)}")
+        call_env = Environment(parent=transformer.env)
+        for param, arg in zip(transformer.params, args):
+            call_env.define(param, arg)
+        rest_args = PebbleList(args[len(transformer.params):])
+        call_env.define(transformer.rest, rest_args)
+
+    # Evaluate body with minimal TCO (just one level)
+    if len(transformer.body) == 0:
+        return NIL
+    for form in transformer.body[:-1]:
+        _trampoline(_seval_internal(form, call_env))
+    # Last form: evaluate it and return the result
+    result = _seval_internal(transformer.body[-1], call_env)
+    # Use a single trampoline to resolve _TailCall
+    return _trampoline(result)
+
+
+def _apply_proc_internal(proc, args):
+    """Internal version of apply_proc that may return _TailCall objects.
 
     Args:
         proc: A Procedure or a callable (builtin).
         args: A list of evaluated arguments.
 
     Returns:
-        The result of the function call.
+        Either a final value or a _TailCall object (for TCO).
 
     Raises:
         EvalError: If proc is not callable or arity mismatches.
@@ -466,13 +583,15 @@ def apply_proc(proc, args):
             rest_args = PebbleList(args[len(proc.params):])
             call_env.define(proc.rest, rest_args)
 
-        # Evaluate body
+        # Evaluate body with TCO: only the last form is in tail position
         if len(proc.body) == 0:
             return NIL
-        result = NIL
-        for form in proc.body:
-            result = seval(form, call_env)
-        return result
+        # Process non-final forms (not in tail position)
+        for form in proc.body[:-1]:
+            _trampoline(_seval_internal(form, call_env))
+        # The last form is in tail position: return a _TailCall instead of evaluating it
+        # This allows the trampoline to handle it without consuming stack depth
+        return _TailCall(proc.body[-1], call_env)
 
     elif callable(proc):
         # It's a Python function (builtin)
@@ -480,6 +599,29 @@ def apply_proc(proc, args):
 
     else:
         raise EvalError(f"not callable: {proc}")
+
+
+def apply_proc(proc, args):
+    """Apply a procedure to arguments.
+
+    This is the public interface. For procedures, it returns a final value
+    (trampoline is applied internally). For builtins, it calls them directly.
+
+    Args:
+        proc: A Procedure or a callable (builtin).
+        args: A list of evaluated arguments.
+
+    Returns:
+        The result of the function call.
+
+    Raises:
+        EvalError: If proc is not callable or arity mismatches.
+    """
+    result = _apply_proc_internal(proc, args)
+    # Trampoline if we got a _TailCall
+    if isinstance(result, _TailCall):
+        return _trampoline(result)
+    return result
 
 
 def make_global_env() -> Environment:
@@ -494,6 +636,10 @@ def make_global_env() -> Environment:
     env = Environment()
     for name, fn in builtin_table(apply_proc).items():
         env.define(Symbol(name), fn)
+
+    # Define boolean literals
+    env.define(Symbol("#t"), True)
+    env.define(Symbol("#f"), False)
 
     return env
 
