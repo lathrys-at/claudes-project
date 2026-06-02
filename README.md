@@ -399,6 +399,13 @@ Pebble provides a comprehensive set of primitive builtin functions implemented i
 - `gcd` — greatest common divisor (variadic)
 - `lcm` — least common multiple (variadic)
 
+**Bitwise Operations:**
+- `bit-and` — bitwise AND of integer arguments (variadic; `(bit-and)` returns -1, the identity)
+- `bit-or` — bitwise OR of integer arguments (variadic; `(bit-or)` returns 0, the identity)
+- `bit-xor` — bitwise XOR of integer arguments (variadic; `(bit-xor)` returns 0, the identity)
+- `bit-not` — bitwise complement (logical NOT, returns ~n)
+- `arithmetic-shift` — shift n left by k bits if k ≥ 0, right (signed) if k < 0
+
 **Floating-Point Operations:**
 - `sqrt` — square root (returns float)
 - `floor` — largest integer ≤ x

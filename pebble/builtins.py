@@ -142,6 +142,90 @@ def builtin_table(apply_proc):
                 result = (result * arg_abs) // math.gcd(result, arg_abs)
         return result
 
+    def builtin_bit_and(*args):
+        """(bit-and ...) -> bitwise AND of integer arguments.
+
+        All arguments must be integers (not booleans).
+        (bit-and) -> -1 (identity: all bits set).
+        (bit-and 12 10) -> 8, (bit-and 12 10 6) -> 0.
+        """
+        for arg in args:
+            if not isinstance(arg, int) or isinstance(arg, bool):
+                raise EvalError(f"bit-and: all arguments must be integers, got {type(arg).__name__}")
+
+        if len(args) == 0:
+            return -1
+
+        result = args[0]
+        for arg in args[1:]:
+            result &= arg
+        return result
+
+    def builtin_bit_or(*args):
+        """(bit-or ...) -> bitwise OR of integer arguments.
+
+        All arguments must be integers (not booleans).
+        (bit-or) -> 0 (identity).
+        (bit-or 12 10) -> 14, (bit-or 1 2 4) -> 7.
+        """
+        for arg in args:
+            if not isinstance(arg, int) or isinstance(arg, bool):
+                raise EvalError(f"bit-or: all arguments must be integers, got {type(arg).__name__}")
+
+        result = 0
+        for arg in args:
+            result |= arg
+        return result
+
+    def builtin_bit_xor(*args):
+        """(bit-xor ...) -> bitwise XOR of integer arguments.
+
+        All arguments must be integers (not booleans).
+        (bit-xor) -> 0 (identity).
+        (bit-xor 12 10) -> 6, (bit-xor 5 3 1) -> 7.
+        """
+        for arg in args:
+            if not isinstance(arg, int) or isinstance(arg, bool):
+                raise EvalError(f"bit-xor: all arguments must be integers, got {type(arg).__name__}")
+
+        result = 0
+        for arg in args:
+            result ^= arg
+        return result
+
+    def builtin_bit_not(n):
+        """(bit-not n) -> bitwise complement of n (i.e. ~n).
+
+        n must be an integer (not a boolean).
+        (bit-not 0) -> -1, (bit-not 5) -> -6.
+        """
+        if not isinstance(n, int) or isinstance(n, bool):
+            raise EvalError(f"bit-not: argument must be an integer, got {type(n).__name__}")
+        return ~n
+
+    def builtin_arithmetic_shift(n, k):
+        """(arithmetic-shift n k) -> n shifted by k bits.
+
+        If k >= 0, shift n LEFT by k bits (n * 2^k).
+        If k < 0, shift n RIGHT (arithmetic/signed) by -k bits.
+        Both n and k must be integers (not booleans).
+        (arithmetic-shift 1 4) -> 16.
+        (arithmetic-shift 255 -4) -> 15.
+        (arithmetic-shift -8 -1) -> -4 (arithmetic right shift preserves sign).
+        (arithmetic-shift 3 0) -> 3.
+        """
+        if not isinstance(n, int) or isinstance(n, bool):
+            raise EvalError(f"arithmetic-shift: first argument must be an integer, got {type(n).__name__}")
+        if not isinstance(k, int) or isinstance(k, bool):
+            raise EvalError(f"arithmetic-shift: second argument must be an integer, got {type(k).__name__}")
+
+        if k >= 0:
+            # Left shift
+            return n << k
+        else:
+            # Right shift (arithmetic): Python's >> operator does arithmetic right shift for negative numbers
+            return n >> (-k)
+
     def builtin_sqrt(x):
         """(sqrt x) -> square root as a float.
 
@@ -1011,6 +1095,11 @@ def builtin_table(apply_proc):
         "remainder": builtin_remainder,
         "gcd": builtin_gcd,
         "lcm": builtin_lcm,
+        "bit-and": builtin_bit_and,
+        "bit-or": builtin_bit_or,
+        "bit-xor": builtin_bit_xor,
+        "bit-not": builtin_bit_not,
+        "arithmetic-shift": builtin_arithmetic_shift,
         "sqrt": builtin_sqrt,
         "floor": builtin_floor,
         "ceiling": builtin_ceiling,
