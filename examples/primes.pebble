@@ -1,0 +1,61 @@
+;;; Lazy Sieve of Eratosthenes producing an infinite stream of primes
+;;; A stream is represented as a two-element list (list HEAD (delay REST))
+;;; where HEAD is the first element and REST is a promise wrapping the rest of the stream.
+
+; stream-cons: MACRO that creates a stream with HEAD (evaluated now) and TAIL (delayed)
+; Returns (list HEAD (delay TAIL))
+; MUST be a macro so TAIL is not evaluated until stream-cdr forces it
+(define-macro (stream-cons head tail)
+  `(list ,head (delay ,tail)))
+
+; stream-car: returns the head (first element) of a stream
+(define (stream-car s)
+  (car s))
+
+; stream-cdr: returns the rest of the stream by forcing the delayed tail
+(define (stream-cdr s)
+  (force (cadr s)))
+
+; stream-take: returns an ordinary Pebble list of the first n elements of stream s
+; Terminates when n reaches 0 or when stream becomes nil
+(define (stream-take s n)
+  (if (= n 0)
+    nil
+    (if (null? s)
+      nil
+      (cons (stream-car s) (stream-take (stream-cdr s) (- n 1))))))
+
+; stream-filter: returns a new stream of elements from s that satisfy the predicate pred
+; Lazily filters the stream; does not evaluate the tail until needed
+(define (stream-filter pred s)
+  (if (null? s)
+    nil
+    (let ((head (stream-car s))
+          (tail (stream-cdr s)))
+      (if (pred head)
+        (stream-cons head (stream-filter pred tail))
+        (stream-filter pred tail)))))
+
+; integers-from: returns the INFINITE stream n, n+1, n+2, ...
+; Works because the tail is delayed: the recursive call is inside the delay,
+; so the stream builds lazily without infinite recursion
+(define (integers-from n)
+  (stream-cons n (integers-from (+ n 1))))
+
+; sieve: the Sieve of Eratosthenes on a stream
+; The first element is prime; the rest is the sieve of the tail with all
+; multiples of that first element filtered out
+(define (sieve s)
+  (let ((head (stream-car s))
+        (tail (stream-cdr s)))
+    (stream-cons head
+      (sieve (stream-filter
+        (lambda (x) (not (= (modulo x head) 0)))
+        tail)))))
+
+; primes: the infinite stream of prime numbers
+(define primes (sieve (integers-from 2)))
+
+; Demonstrate the prime sieve: print first 10 primes and first 5 even numbers
+(displayln (stream-take primes 10))
+(displayln (stream-take (stream-filter even? (integers-from 1)) 5))

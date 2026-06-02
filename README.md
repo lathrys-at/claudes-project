@@ -85,6 +85,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/simplify.pebble` — Symbolic algebra simplifier using `match` pattern-matching to rewrite arithmetic expressions
 - `examples/rpn.pebble` — Reverse Polish Notation calculator using a vector as a stack
 - `examples/streams.pebble` — Lazy infinite streams library built on `delay`/`force` promises
+- `examples/primes.pebble` — Infinite stream of primes via a lazy Sieve of Eratosthenes
 
 Run any example directly:
 
@@ -92,7 +93,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_rpn.py`, and `tests/test_streams.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_rpn.py`, `tests/test_streams.py`, and `tests/test_primes.py`.
 
 ## Design
 
