@@ -77,6 +77,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/fibonacci.pebble` — Computes first 10 Fibonacci numbers using tail-recursive helper
 - `examples/quicksort.pebble` — Sorts a list using the quicksort algorithm
 - `examples/bst.pebble` — Immutable binary search tree built with `define-record`
+- `examples/bfs.pebble` — Breadth-first search shortest-path finder over a hash-map graph
 - `examples/wordcount.pebble` — Counts word frequencies using hash maps
 - `examples/error_handling.pebble` — Demonstrates try/catch error handling
 - `examples/calculator.pebble` — Arithmetic expression evaluator with operator precedence and parentheses
@@ -96,7 +97,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, and `tests/test_brainfuck.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, and `tests/test_brainfuck.py`.
 
 ## Design
 

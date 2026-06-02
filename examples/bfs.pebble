@@ -1,0 +1,80 @@
+;;; Breadth-First-Search shortest-path finder
+;;; Finds the shortest path between two nodes in a graph represented as a hash map
+
+;;; Define the graph as a hash map: node -> list of neighbors
+;;; Each entry maps a symbol (node) to a list of neighbor symbols
+(define graph
+  (make-hash
+    (quote a) (list (quote b) (quote c))
+    (quote b) (list (quote d))
+    (quote c) (list (quote d) (quote e))
+    (quote d) (list (quote f))
+    (quote e) (list (quote f))
+    (quote f) (list)
+    (quote z) (list)))
+
+;;; (shortest-path g start goal) - returns a list representing the shortest path
+;;; from start to goal (including both endpoints), or nil if goal is unreachable.
+;;;
+;;; Uses breadth-first search with:
+;;; - queue: a FIFO queue of nodes to explore (represented as a list)
+;;; - visited: a hash map tracking which nodes have been explored
+;;; - came-from: a hash map storing the predecessor of each node (for path reconstruction)
+;;;
+;;; When goal is dequeued (or start equals goal), the path is reconstructed by
+;;; following came-from links from goal back to start, then reversing.
+(define (shortest-path g start goal)
+  ;; Named let for tail-recursive BFS loop
+  (let loop ((queue (list start))
+             (visited (make-hash))
+             (came-from (make-hash)))
+    (if (null? queue)
+      ; Queue is empty: goal was never reached
+      nil
+      (let ((current (car queue))
+            (rest-queue (cdr queue)))
+        (if (= current goal)
+          ; Found goal: reconstruct path from came-from map
+          (reconstruct-path came-from goal start)
+          (if (hash-has? visited current)
+            ; Already visited: skip and continue
+            (loop rest-queue visited came-from)
+            ; New node: mark visited, add neighbors to queue
+            (let ((neighbors (hash-ref g current nil)))
+              (let ((new-visited (hash-set visited current true))
+                    (new-queue (append rest-queue neighbors))
+                    (new-came-from (mark-predecessors came-from current neighbors)))
+                (loop new-queue new-visited new-came-from)))))))))
+
+;;; (reconstruct-path came-from goal start) - reconstructs the shortest path
+;;; by following the came-from links backward from goal to start, then reversing.
+(define (reconstruct-path came-from goal start)
+  (let loop ((current goal)
+             (path (list goal)))
+    (if (= current start)
+      ; Reached start: return path (already in correct order after final reverse)
+      path
+      ; Follow predecessor link
+      (let ((predecessor (hash-ref came-from current nil)))
+        (if predecessor
+          (loop predecessor (cons predecessor path))
+          ; Should not happen if goal is reachable
+          nil)))))
+
+;;; (mark-predecessors came-from current neighbors) - records that current is the
+;;; predecessor of each neighbor (unless already marked), returning a new came-from map.
+;;; This ensures the first encounter of a node in BFS is remembered as its predecessor.
+(define (mark-predecessors came-from current neighbors)
+  (if (null? neighbors)
+    came-from
+    (let ((neighbor (car neighbors)))
+      (if (hash-has? came-from neighbor)
+        ; Already marked: skip (BFS found it from another node first, or it's visited)
+        (mark-predecessors came-from current (cdr neighbors))
+        ; New neighbor: mark and continue
+        (let ((updated (hash-set came-from neighbor current)))
+          (mark-predecessors updated current (cdr neighbors)))))))
+
+;;; Demo: print two shortest paths
+(displayln (shortest-path graph (quote a) (quote f)))
+(displayln (shortest-path graph (quote a) (quote e)))
