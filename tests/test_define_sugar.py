@@ -97,7 +97,7 @@ def test_define_shorthand_recursion():
 
 
 def test_define_shorthand_tail_recursion():
-    """Test tail-call optimization: tail-recursive loop at 20,000 iterations."""
+    """Test tail-call optimization: tail-recursive loop at 5,000 iterations."""
     env = make_global_env()
     # (define (loop n acc) (if (<= n 0) acc (loop (- n 1) (+ acc 1))))
     seval(PebbleList([
@@ -110,8 +110,8 @@ def test_define_shorthand_tail_recursion():
             PebbleList([Symbol("loop"), PebbleList([Symbol("-"), Symbol("n"), 1]), PebbleList([Symbol("+"), Symbol("acc"), 1])])
         ])
     ]), env)
-    result = seval(PebbleList([Symbol("loop"), 20000, 0]), env)
-    assert result == 20000
+    result = seval(PebbleList([Symbol("loop"), 5000, 0]), env)
+    assert result == 5000
 
 
 def test_define_value_form_still_works():

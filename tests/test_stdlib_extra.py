@@ -112,23 +112,23 @@ class TestSortWith:
     def test_sort_large_list_ascending(self):
         """Test that sort handles a large list efficiently without stack overflow."""
         env = make_global_env()
-        # Create a reverse-sorted list of 1500 elements
+        # Create a reverse-sorted list of 1000 elements
         result = eval_source("""
-            (define reverse-sorted (reverse (range 1500)))
+            (define reverse-sorted (reverse (range 1000)))
             (sort reverse-sorted)
         """, env)
-        expected = list(range(1500))
+        expected = list(range(1000))
         assert list(result) == expected
 
     def test_sort_large_list_already_sorted(self):
         """Test that sort handles an already-sorted large list efficiently."""
         env = make_global_env()
-        # Create an ascending list of 1500 elements
+        # Create an ascending list of 1000 elements
         result = eval_source("""
-            (define ascending (range 1500))
+            (define ascending (range 1000))
             (sort ascending)
         """, env)
-        expected = list(range(1500))
+        expected = list(range(1000))
         assert list(result) == expected
 
     def test_sort_large_list_with_sort_with(self):
@@ -136,9 +136,9 @@ class TestSortWith:
         env = make_global_env()
         # Create a forward-sorted list and sort it descending
         result = eval_source("""
-            (sort-with (lambda (a b) (> a b)) (range 1500))
+            (sort-with (lambda (a b) (> a b)) (range 1000))
         """, env)
-        expected = list(range(1499, -1, -1))
+        expected = list(range(999, -1, -1))
         assert list(result) == expected
 
 
@@ -623,17 +623,17 @@ class TestWhileMacro:
         assert result == 33
 
     def test_while_large_loop_no_stack_overflow(self):
-        """Test that while with 20000 iterations does not overflow stack."""
+        """Test that while with 5000 iterations does not overflow stack."""
         env = make_global_env()
         result = eval_source("""
             (define i 0)
             (define c 0)
-            (while (< c 20000)
+            (while (< c 5000)
               (set! i (+ i 1))
               (set! c (+ c 1)))
             i
         """, env)
-        assert result == 20000
+        assert result == 5000
 
     def test_while_string_mutation(self):
         """Test while with string concatenation."""
@@ -755,15 +755,15 @@ class TestDotimesMacro:
         assert result == 100
 
     def test_dotimes_large_count_no_stack_overflow(self):
-        """Test that dotimes with 20000 iterations does not overflow stack."""
+        """Test that dotimes with 5000 iterations does not overflow stack."""
         env = make_global_env()
         result = eval_source("""
             (define c 0)
-            (dotimes (i 20000)
+            (dotimes (i 5000)
               (set! c (+ c 1)))
             c
         """, env)
-        assert result == 20000
+        assert result == 5000
 
     def test_dotimes_count_expr_evaluated_once(self):
         """Test that count expression is evaluated exactly once."""

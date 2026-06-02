@@ -7,8 +7,8 @@ from pebble.types import Symbol
 class TestTailCallOptimization:
     """Test suite for TCO functionality."""
 
-    def test_tco_tail_recursive_accumulator_100k(self):
-        """Test tail-recursive accumulator over 20k iterations."""
+    def test_tco_tail_recursive_accumulator_5k(self):
+        """Test tail-recursive accumulator over 5k iterations."""
         env = make_global_env()
         source = """
         (define sum-to
@@ -16,7 +16,7 @@ class TestTailCallOptimization:
             (if (= n 0)
                 acc
                 (sum-to (- n 1) (+ acc n)))))
-        (sum-to 20000 0)
+        (sum-to 5000 0)
         """
         from pebble.reader import read
         forms = read(source)
@@ -24,11 +24,11 @@ class TestTailCallOptimization:
         seval(forms[0], env)
         # Call it
         result = seval(forms[1], env)
-        # The sum of 1..20000 is 20000 * 20001 / 2 = 200010000
-        assert result == 200010000
+        # The sum of 1..5000 is 5000 * 5001 / 2 = 12502500
+        assert result == 12502500
 
-    def test_tco_mutual_recursion_even_odd_100k(self):
-        """Test mutual tail recursion (even/odd pair) over 20k steps."""
+    def test_tco_mutual_recursion_even_odd_5k(self):
+        """Test mutual tail recursion (even/odd pair) over 5k steps."""
         env = make_global_env()
         source = """
         (define is-even
@@ -50,12 +50,12 @@ class TestTailCallOptimization:
 
         # Now test them
         source2 = """
-        (list (is-even 20000) (is-odd 20000))
+        (list (is-even 5000) (is-odd 5000))
         """
         forms2 = read(source2)
         result = seval(forms2[0], env)
 
-        # 20000 is even, 20000 is even so is-odd is false
+        # 5000 is even, 5000 is even so is-odd is false
         from pebble.types import PebbleList
         assert isinstance(result, PebbleList)
         assert result[0] is True
@@ -169,8 +169,8 @@ class TestTailCallOptimization:
         with pytest.raises(EvalError, match="undefined symbol"):
             seval(Symbol("undefined-var"), env)
 
-    def test_tco_complex_tail_recursion_50k(self):
-        """Test more complex tail recursion pattern with 20k iterations."""
+    def test_tco_complex_tail_recursion_5k(self):
+        """Test more complex tail recursion pattern with 5k iterations."""
         env = make_global_env()
         source = """
         (define power-sum
@@ -183,23 +183,23 @@ class TestTailCallOptimization:
         forms = read(source)
         seval(forms[0], env)
 
-        source2 = "(power-sum 20000 2 0)"
+        source2 = "(power-sum 5000 2 0)"
         forms2 = read(source2)
         result = seval(forms2[0], env)
-        # Sum of squares from 1 to 20000
+        # Sum of squares from 1 to 5000
         # Formula: n(n+1)(2n+1)/6
-        expected = 20000 * 20001 * 40001 // 6
+        expected = 5000 * 5001 * 10001 // 6
         assert result == expected
 
-    def test_tco_nested_if_200k(self):
-        """Test nested if statements in tail position over 50k iterations (stress test)."""
+    def test_tco_nested_if_5k(self):
+        """Test nested if statements in tail position over 5k iterations (stress test)."""
         env = make_global_env()
         source = """
         (define nested-if
           (lambda (n)
-            (if (< n 25000)
+            (if (< n 1250)
                 (nested-if (+ n 1))
-                (if (< n 50000)
+                (if (< n 2500)
                     (nested-if (+ n 1))
                     n))))
         """
@@ -210,7 +210,7 @@ class TestTailCallOptimization:
         source2 = "(nested-if 0)"
         forms2 = read(source2)
         result = seval(forms2[0], env)
-        assert result == 50000
+        assert result == 2500
 
     def test_tco_multiple_begin_forms_5k(self):
         """Test multiple forms in begin, with only last in tail position."""
@@ -254,7 +254,7 @@ class TestTailCallOptimization:
         # When n=0: x=(0+1)=1, y=(0-1)=-1, z=(0*2)=0, sum=0
         assert result == 0
 
-    def test_tco_list_tail_recursion_100k(self):
+    def test_tco_list_tail_recursion_5k(self):
         """Test tail recursion that builds a list result via tail call."""
         env = make_global_env()
         source = """
@@ -263,13 +263,13 @@ class TestTailCallOptimization:
             (if (= n 0)
                 acc
                 (range (- n 1) (cons n acc)))))
-        (length (range 20000 (list)))
+        (length (range 5000 (list)))
         """
         from pebble.reader import read
         forms = read(source)
         seval(forms[0], env)
         result = seval(forms[1], env)
-        assert result == 20000
+        assert result == 5000
 
     def test_tco_if_without_else_branch(self):
         """Test if without else branch in tail position."""

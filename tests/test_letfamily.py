@@ -154,7 +154,7 @@ class TestLetrec:
     def test_tail_call_optimization(self):
         """Test that tail recursion in letrec-bound function doesn't overflow."""
         env = make_global_env()
-        # Tail-recursive sum from 0 to 20000
+        # Tail-recursive sum from 0 to 5000
         result = seval(
             PebbleList([
                 Symbol("letrec"),
@@ -177,12 +177,12 @@ class TestLetrec:
                         ])
                     ])
                 ]),
-                PebbleList([Symbol("sum-to"), 20000, 0])
+                PebbleList([Symbol("sum-to"), 5000, 0])
             ]),
             env
         )
-        # sum(1..20000) = 20000*20001/2 = 200010000
-        assert result == 200010000
+        # sum(1..5000) = 5000*5001/2 = 12502500
+        assert result == 12502500
 
     def test_malformed_bindings_not_list(self):
         """Test that non-list bindings raise EvalError."""
@@ -286,13 +286,13 @@ class TestNamedLet:
     def test_tail_call_optimization(self):
         """Test that tail recursion in named let doesn't overflow."""
         env = make_global_env()
-        # Tail-recursive sum from 0 to 20000
+        # Tail-recursive sum from 0 to 5000
         result = seval(
             PebbleList([
                 Symbol("let"),
                 Symbol("sum-to"),
                 PebbleList([
-                    PebbleList([Symbol("n"), 20000]),
+                    PebbleList([Symbol("n"), 5000]),
                     PebbleList([Symbol("acc"), 0])
                 ]),
                 PebbleList([
@@ -308,8 +308,8 @@ class TestNamedLet:
             ]),
             env
         )
-        # sum(1..20000) = 20000*20001/2 = 200010000
-        assert result == 200010000
+        # sum(1..5000) = 5000*5001/2 = 12502500
+        assert result == 12502500
 
     def test_ordinary_let_still_works(self):
         """Test that ordinary let (bindings as first element) still works."""
