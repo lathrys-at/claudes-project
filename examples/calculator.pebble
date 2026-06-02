@@ -1,0 +1,124 @@
+;;; Arithmetic expression calculator with operator precedence and parentheses
+;;; Supports: integers, +, -, * with standard precedence and left-associativity
+;;; and parentheses for grouping
+
+;;; Tokenize the input string into a list of tokens
+;;; Returns a list of tokens (numbers as strings, operators as symbols, parens as symbols)
+(define (tokenize input)
+  (define (is-whitespace? c)
+    (or (= c " ") (= c "\t") (= c "\n") (= c "\r")))
+
+  (define (is-digit? c)
+    (and (>= (string-length c) 1)
+         (let ((num (string->number c)))
+           (and num (>= num 0) (<= num 9)))))
+
+  (define (tokenize-helper str idx tokens current-num)
+    (if (>= idx (string-length str))
+      (if (= (string-length current-num) 0)
+        (reverse tokens)
+        (reverse (cons current-num tokens)))
+      (let ((c (substring str idx (+ idx 1))))
+        (cond
+          ((is-whitespace? c)
+           (if (= (string-length current-num) 0)
+             (tokenize-helper str (+ idx 1) tokens current-num)
+             (tokenize-helper str (+ idx 1) (cons current-num tokens) "")))
+          ((is-digit? c)
+           (tokenize-helper str (+ idx 1) tokens (string-append current-num c)))
+          ((or (= c "+") (= c "-") (= c "*"))
+           (let ((new-tokens
+                   (if (= (string-length current-num) 0)
+                     tokens
+                     (cons current-num tokens))))
+             (tokenize-helper str (+ idx 1) (cons c new-tokens) "")))
+          ((= c "(")
+           (let ((new-tokens
+                   (if (= (string-length current-num) 0)
+                     tokens
+                     (cons current-num tokens))))
+             (tokenize-helper str (+ idx 1) (cons "(" new-tokens) "")))
+          ((= c ")")
+           (let ((new-tokens
+                   (if (= (string-length current-num) 0)
+                     tokens
+                     (cons current-num tokens))))
+             (tokenize-helper str (+ idx 1) (cons ")" new-tokens) "")))
+          (else
+           (tokenize-helper str (+ idx 1) tokens current-num))))))
+
+  (tokenize-helper input 0 nil ""))
+
+;;; Parse and evaluate an expression recursively
+;;; Tokens are consumed left-to-right, functions return (value remaining-tokens)
+
+;;; Parse a primary expression (number or parenthesized expression)
+(define (parse-primary tokens)
+  (if (null? tokens)
+    (error "Unexpected end of input")
+    (let ((first (car tokens))
+          (rest (cdr tokens)))
+      (cond
+        ((= first "(")
+         (let ((expr-result (parse-expr rest)))
+           (let ((expr-val (car expr-result))
+                 (after-expr (cadr expr-result)))
+             (if (or (null? after-expr) (not (= (car after-expr) ")")))
+               (error "Missing closing parenthesis")
+               (list expr-val (cdr after-expr))))))
+        (else
+         ; It should be a number token
+         (list (string->number first) rest))))))
+
+;;; Parse a multiplication/division term (higher precedence)
+(define (parse-term tokens)
+  (let ((primary-result (parse-primary tokens)))
+    (let ((left (car primary-result))
+          (rest (cadr primary-result)))
+      (define (parse-term-rest left rest)
+        (if (or (null? rest) (not (= (car rest) "*")))
+          (list left rest)
+          (let ((next-primary (parse-primary (cdr rest))))
+            (let ((right (car next-primary))
+                  (after-right (cadr next-primary)))
+              (let ((new-left (* left right)))
+                (parse-term-rest new-left after-right))))))
+      (parse-term-rest left rest))))
+
+;;; Parse an addition/subtraction expression (lower precedence)
+(define (parse-expr tokens)
+  (let ((term-result (parse-term tokens)))
+    (let ((left (car term-result))
+          (rest (cadr term-result)))
+      (define (parse-expr-rest left rest)
+        (if (null? rest)
+          (list left rest)
+          (let ((op (car rest)))
+            (cond
+              ((= op "+")
+               (let ((next-term (parse-term (cdr rest))))
+                 (let ((right (car next-term))
+                       (after-right (cadr next-term)))
+                   (let ((new-left (+ left right)))
+                     (parse-expr-rest new-left after-right)))))
+              ((= op "-")
+               (let ((next-term (parse-term (cdr rest))))
+                 (let ((right (car next-term))
+                       (after-right (cadr next-term)))
+                   (let ((new-left (- left right)))
+                     (parse-expr-rest new-left after-right)))))
+              (else
+               (list left rest))))))
+      (parse-expr-rest left rest))))
+
+;;; Main calculator function
+;;; Takes a string containing an arithmetic expression and returns its integer value
+(define (calc expr-str)
+  (let ((tokens (tokenize expr-str)))
+    (let ((result (parse-expr tokens)))
+      (car result))))
+
+;;; Demonstration output
+(displayln (string-append "2 + 3 = " (number->string (calc "2 + 3"))))
+(displayln (string-append "2 + 3 * 4 = " (number->string (calc "2 + 3 * 4"))))
+(displayln (string-append "(2 + 3) * 4 = " (number->string (calc "(2 + 3) * 4"))))
