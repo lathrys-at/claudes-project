@@ -2,6 +2,9 @@
 from pebble.types import Symbol, PebbleList, NIL
 from pebble.evaluator import EvalError, is_truthy
 
+# Gensym counter for generating unique symbols
+_gensym_counter = 0
+
 
 def builtin_table(apply_proc):
     """Return a dict mapping builtin name (str) -> Python callable.
@@ -371,6 +374,32 @@ def builtin_table(apply_proc):
         """(error msg) -> raise EvalError(str(msg))."""
         raise EvalError(str(msg))
 
+    # ===== MACRO SUPPORT =====
+
+    def builtin_gensym(*args):
+        """(gensym) or (gensym prefix) -> fresh unique Symbol."""
+        global _gensym_counter
+        if len(args) == 0:
+            prefix = "g"
+        elif len(args) == 1:
+            prefix_arg = args[0]
+            if isinstance(prefix_arg, Symbol):
+                prefix = str(prefix_arg)
+            elif isinstance(prefix_arg, str):
+                prefix = prefix_arg
+            else:
+                raise EvalError(f"gensym: prefix must be a string or symbol, got {type(prefix_arg).__name__}")
+        else:
+            raise EvalError(f"gensym: takes 0 or 1 argument, got {len(args)}")
+
+        _gensym_counter += 1
+        return Symbol(f"{prefix}__gensym__{_gensym_counter}")
+
+    def builtin_macro_p(x):
+        """(macro? x) -> True if x is a Macro, else False."""
+        from pebble.evaluator import Macro
+        return isinstance(x, Macro)
+
     # ===== BUILD AND RETURN BUILTIN TABLE =====
 
     return {
@@ -426,4 +455,6 @@ def builtin_table(apply_proc):
         "display": builtin_display,
         "newline": builtin_newline,
         "error": builtin_error,
+        "gensym": builtin_gensym,
+        "macro?": builtin_macro_p,
     }

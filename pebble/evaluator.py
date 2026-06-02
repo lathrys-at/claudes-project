@@ -65,6 +65,22 @@ class Environment:
             return
         raise EvalError(f"cannot set undefined symbol: {name}")
 
+    def try_lookup(self, name, default=None):
+        """Look up a variable, returning default if not found.
+
+        Args:
+            name: A Symbol or str to look up.
+            default: The value to return if not found (None by default).
+
+        Returns:
+            The bound value, or default if not found.
+        """
+        if name in self.vars:
+            return self.vars[name]
+        if self.parent is not None:
+            return self.parent.try_lookup(name, default)
+        return default
+
 
 class Procedure:
     """A Pebble closure (lambda function)."""
@@ -85,6 +101,22 @@ class Procedure:
         """Return a string representation of the procedure."""
         param_names = " ".join(str(p) for p in self.params)
         return f"<procedure ({param_names})>"
+
+
+class Macro:
+    """A macro: wraps a transformer Procedure that rewrites code at expansion time."""
+
+    def __init__(self, transformer):
+        """Create a macro.
+
+        Args:
+            transformer: A Procedure that transforms unevaluated code.
+        """
+        self.transformer = transformer
+
+    def __repr__(self):
+        """Return a string representation of the macro."""
+        return "<macro>"
 
 
 def is_truthy(value) -> bool:
@@ -209,6 +241,52 @@ def seval(expr, env):
                 env.define(name, value)
                 return name
 
+            elif head == "define-macro":
+                if len(expr) < 2:
+                    raise EvalError(f"define-macro requires at least 1 argument, got {len(expr) - 1}")
+
+                # Check if it's function-style (a) or value-style (b)
+                if isinstance(expr[1], PebbleList):
+                    # Function-style: (define-macro (name param1 param2 ...) body...)
+                    params_and_name = expr[1]
+                    if len(params_and_name) == 0:
+                        raise EvalError("define-macro: macro name and parameters list cannot be empty")
+
+                    macro_name = params_and_name[0]
+                    if not isinstance(macro_name, Symbol):
+                        raise EvalError(f"define-macro: macro name must be a symbol, got {type(macro_name).__name__}")
+
+                    macro_params = list(params_and_name[1:])
+                    # Validate all params are symbols
+                    for param in macro_params:
+                        if not isinstance(param, Symbol):
+                            raise EvalError(f"define-macro: parameter must be a symbol, got {type(param).__name__}")
+
+                    body = list(expr[2:])
+                    transformer = Procedure(macro_params, body, env)
+                    macro = Macro(transformer)
+                    env.define(macro_name, macro)
+                    return macro_name
+
+                elif isinstance(expr[1], Symbol):
+                    # Value-style: (define-macro name transformer-expr)
+                    if len(expr) != 3:
+                        raise EvalError(f"define-macro value-style requires exactly 2 arguments, got {len(expr) - 1}")
+
+                    macro_name = expr[1]
+                    transformer_expr = expr[2]
+                    transformer = seval(transformer_expr, env)
+
+                    if not isinstance(transformer, Procedure):
+                        raise EvalError("define-macro: transformer must be a procedure")
+
+                    macro = Macro(transformer)
+                    env.define(macro_name, macro)
+                    return macro_name
+
+                else:
+                    raise EvalError(f"define-macro: first argument must be a symbol or list, got {type(expr[1]).__name__}")
+
             elif head == "set!":
                 if len(expr) != 3:
                     raise EvalError(f"set! requires exactly 2 arguments, got {len(expr) - 1}")
@@ -270,7 +348,15 @@ def seval(expr, env):
                     result = seval(form, env)
                 return result
 
-        # Not a special form: it's a function call
+            # If we reach here, head is a Symbol but no special form matched
+            # Check for macro expansion
+            maybe_macro = env.try_lookup(head)
+            if isinstance(maybe_macro, Macro):
+                # Expand the macro: apply transformer to unevaluated args
+                expansion = apply_proc(maybe_macro.transformer, list(expr[1:]))
+                return seval(expansion, env)
+
+        # Not a special form and not a macro (or head is not a Symbol): it's a function call
         # Evaluate the head and all arguments
         proc = seval(head, env)
         args = [seval(arg, env) for arg in expr[1:]]

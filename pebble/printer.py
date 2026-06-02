@@ -1,6 +1,6 @@
 """Printer for Pebble values back to Lisp source syntax."""
 from pebble.types import Symbol, PebbleList, NIL
-from pebble.evaluator import Procedure
+from pebble.evaluator import Procedure, Macro
 
 
 def pebble_repr(value) -> str:
@@ -45,6 +45,10 @@ def pebble_repr(value) -> str:
         else:
             elements = " ".join(pebble_repr(item) for item in value)
             return f"({elements})"
+
+    # Check for Macro
+    if isinstance(value, Macro):
+        return repr(value)
 
     # Check for Procedure
     if isinstance(value, Procedure):
@@ -100,6 +104,10 @@ def pebble_str(value) -> str:
         else:
             elements = " ".join(pebble_repr(item) for item in value)
             return f"({elements})"
+
+    # Check for Macro
+    if isinstance(value, Macro):
+        return repr(value)
 
     # Check for Procedure
     if isinstance(value, Procedure):

@@ -12,7 +12,7 @@ a set of primitive builtins, and a REPL.
 - [x] Evaluator + special forms
 - [x] Builtins (rich primitive library: arithmetic, predicates, list & string ops, higher-order functions)
 - [x] REPL
-- [ ] Macros & quasiquote (quasiquote done; macros pending)
+- [x] Macros & quasiquote
 - [ ] Tail-call optimization
 - [ ] In-language standard library
 
@@ -49,3 +49,20 @@ Pebble values map onto Python values where natural:
 | list          | `pebble.types.PebbleList`      |
 | nil / empty   | empty `PebbleList`             |
 | boolean       | `True` / `False`               |
+
+### Macros
+
+Macros are unhygienic, defmacro-style (like Scheme's non-hygienic macros).
+Define macros with `define-macro` in two styles:
+
+```scheme
+; Function-style syntax sugar
+(define-macro (unless test body)
+  `(if ,test nil ,body))
+
+; Value-style with explicit transformer
+(define-macro m (lambda (x) `(+ ,x 1)))
+```
+
+Macros expand at call time by applying the transformer procedure to unevaluated arguments.
+Use `gensym` to generate fresh symbols and avoid variable capture.
