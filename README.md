@@ -14,7 +14,7 @@ a set of primitive builtins, and a REPL.
 - [x] REPL
 - [x] Macros & quasiquote
 - [x] Tail-call optimization (tail calls execute in bounded stack space via trampolining)
-- [ ] In-language standard library
+- [x] In-language standard library
 
 ## Usage
 
@@ -107,3 +107,45 @@ Lambdas and macros support variadic parameters to collect remaining arguments:
 (define-macro (when test . body)
   `(if ,test (begin ,@body) nil))
 ```
+
+### Standard Library
+
+Pebble includes a standard library written in the Pebble language itself, automatically loaded into the global environment via `make_global_env()`. The library is defined in `pebble/prelude.pebble` and provides:
+
+**Macros:**
+- `when` and `unless` — conditional evaluation with optional body forms
+- `and` and `or` — short-circuiting logical operators with variadic arity
+- `cond` — multi-branch conditional with optional else clause
+- `let*` — sequential/nested let bindings
+
+**List accessors:**
+- `caar`, `cadr`, `caddr`, `cddr` — classic nested car/cdr combinations
+- `first`, `second`, `third`, `rest` — ordinal list element access
+
+**Basic functions:**
+- `identity` — returns its argument
+- `inc`, `dec` — increment and decrement by 1
+- `zero?`, `positive?`, `negative?`, `even?`, `odd?` — numeric predicates
+
+**Higher-order functions:**
+- `compose` — function composition `(compose f g)` → `(lambda (x) (f (g x)))`
+- `const` — returns a constant function
+
+**List operations:**
+- `last` — last element of a list
+- `nth` — zero-indexed element access
+- `range` — lazy or eager integer ranges; supports both tail-call optimization and large ranges
+- `take`, `drop` — prefix/suffix operations
+- `sum`, `product` — aggregate numeric lists
+- `reduce` — left fold over non-empty lists
+- `map2` — two-argument map (parallel iteration)
+- `zip` — pair corresponding elements
+
+**String functions:**
+- `string-join` — join a list of strings with separator
+- `flatten` — flatten arbitrarily-nested lists
+
+**I/O:**
+- `displayln` — display with newline
+
+The prelude is loaded by default and cached, so repeated calls to `make_global_env()` do not re-parse the file. Pass `load_prelude=False` to `make_global_env()` to get an environment with only primitive builtins.

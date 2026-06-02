@@ -1,0 +1,209 @@
+;;; Standard library for Pebble Lisp
+;;; Loaded automatically into the global environment
+
+; ===== MACROS =====
+
+; when: (when test body...) - evaluate body only if test is truthy
+(define-macro (when test . body)
+  `(if ,test (begin ,@body) nil))
+
+; unless: (unless test body...) - evaluate body only if test is falsy
+(define-macro (unless test . body)
+  `(if ,test nil (begin ,@body)))
+
+; and: variadic short-circuiting logical AND
+(define-macro (and . args)
+  (if (null? args)
+    'true
+    (if (null? (cdr args))
+      (car args)
+      `(if ,(car args) (and ,@(cdr args)) ,(car args)))))
+
+; or: variadic short-circuiting logical OR
+(define-macro (or . args)
+  (if (null? args)
+    'false
+    (let ((first-gensym (gensym)))
+      `(let ((,first-gensym ,(car args)))
+         (if ,first-gensym ,first-gensym (or ,@(cdr args)))))))
+
+; cond: (cond clause...) where each clause is (test body...)
+(define-macro (cond . clauses)
+  (if (null? clauses)
+    nil
+    (let ((clause (car clauses)))
+      (if (and (pair? clause) (symbol? (car clause)) (= (symbol->string (car clause)) "else"))
+        `(begin ,@(cdr clause))
+        (if (null? (cdr clause))
+          ; No body: return the test value
+          `(if ,(car clause) ,(car clause) (cond ,@(cdr clauses)))
+          ; Has body: return the last body form
+          `(if ,(car clause)
+             (begin ,@(cdr clause))
+             (cond ,@(cdr clauses))))))))
+
+; let*: (let* (binding...) body...) - bindings are sequential/nested
+(define-macro (let* bindings . body)
+  (if (null? bindings)
+    `(begin ,@body)
+    `(let (,(car bindings))
+       (let* ,(cdr bindings) ,@body))))
+
+; ===== ACCESSORS =====
+
+; car/cdr combinations
+(define (caar x) (car (car x)))
+(define (cadr x) (car (cdr x)))
+(define (caddr x) (car (cdr (cdr x))))
+(define (cddr x) (cdr (cdr x)))
+
+; first/second/third/rest
+(define (first lst) (car lst))
+(define (second lst) (cadr lst))
+(define (third lst) (caddr lst))
+(define (rest lst) (cdr lst))
+
+; ===== BASIC FUNCTIONS =====
+
+; identity: returns its argument unchanged
+(define (identity x) x)
+
+; inc: increment by 1
+(define (inc n) (+ n 1))
+
+; dec: decrement by 1
+(define (dec n) (- n 1))
+
+; ===== NUMERIC PREDICATES =====
+
+; zero?: test if number is 0
+(define (zero? n) (= n 0))
+
+; positive?: test if number > 0
+(define (positive? n) (> n 0))
+
+; negative?: test if number < 0
+(define (negative? n) (< n 0))
+
+; even?: test if number is divisible by 2
+(define (even? n) (= (modulo n 2) 0))
+
+; odd?: test if number is not divisible by 2
+(define (odd? n) (not (even? n)))
+
+; ===== HIGHER-ORDER FUNCTIONS =====
+
+; compose: (compose f g) returns a function that does f(g(x))
+(define (compose f g)
+  (lambda (x) (f (g x))))
+
+; const: (const x) returns a function that always returns x
+(define (const x)
+  (lambda (y) x))
+
+; ===== LIST FUNCTIONS =====
+
+; last: returns the last element of a non-empty list
+(define (last lst)
+  (if (null? (cdr lst))
+    (car lst)
+    (last (cdr lst))))
+
+; nth: returns the zero-indexed i-th element of lst
+(define (nth lst i)
+  (if (= i 0)
+    (car lst)
+    (nth (cdr lst) (- i 1))))
+
+; range: returns a list of integers
+; (range n) -> (0 1 ... n-1)
+; (range a b) -> (a a+1 ... b-1)
+; Uses a tail-recursive inner function
+(define (range . args)
+  (cond
+    ((= (length args) 1)
+     (let ((n (car args)))
+       (define (range-helper i acc)
+         (if (= i n)
+           (reverse acc)
+           (range-helper (+ i 1) (cons i acc))))
+       (range-helper 0 nil)))
+    ((= (length args) 2)
+     (let ((a (car args)) (b (cadr args)))
+       (define (range-helper i acc)
+         (if (>= i b)
+           (reverse acc)
+           (range-helper (+ i 1) (cons i acc))))
+       (range-helper a nil)))))
+
+; take: returns the first n elements of lst
+(define (take lst n)
+  (if (= n 0)
+    nil
+    (if (null? lst)
+      nil
+      (cons (car lst) (take (cdr lst) (- n 1))))))
+
+; drop: returns lst with the first n elements removed
+(define (drop lst n)
+  (if (= n 0)
+    lst
+    (if (null? lst)
+      nil
+      (drop (cdr lst) (- n 1)))))
+
+; sum: sum of a list of numbers (empty list -> 0)
+(define (sum lst)
+  (foldl + 0 lst))
+
+; product: product of a list of numbers (empty list -> 1)
+(define (product lst)
+  (foldl * 1 lst))
+
+; reduce: fold over a non-empty list using the first element as accumulator
+(define (reduce f lst)
+  (if (null? lst)
+    (error "reduce: empty list")
+    (foldl f (car lst) (cdr lst))))
+
+; map2: applies a two-argument function to corresponding elements of two lists
+(define (map2 f a b)
+  (if (null? a)
+    nil
+    (if (null? b)
+      nil
+      (cons (f (car a) (car b)) (map2 f (cdr a) (cdr b))))))
+
+; zip: pairs corresponding elements of two lists
+(define (zip a b)
+  (map2 list a b))
+
+; flatten: flattens an arbitrarily-nested list structure
+(define (flatten lst)
+  (foldl
+    (lambda (acc elem)
+      (if (list? elem)
+        (append acc (flatten elem))
+        (append acc (list elem))))
+    nil
+    lst))
+
+; ===== STRING FUNCTIONS =====
+
+; string-join: joins a list of strings with a separator
+(define (string-join lst sep)
+  (if (null? lst)
+    ""
+    (if (null? (cdr lst))
+      (car lst)
+      (string-append
+        (car lst)
+        sep
+        (string-join (cdr lst) sep)))))
+
+; ===== IO FUNCTIONS =====
+
+; displayln: displays value followed by newline, returns nil
+(define (displayln x)
+  (display x)
+  (newline))

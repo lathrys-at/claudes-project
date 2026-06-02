@@ -625,11 +625,39 @@ def apply_proc(proc, args):
     return result
 
 
-def make_global_env() -> Environment:
-    """Create the global environment with primitive builtins.
+_prelude_cache = None
+
+def _load_prelude():
+    """Load and parse the prelude source, caching the result.
 
     Returns:
-        An Environment with starter builtins defined.
+        A list of parsed forms from the prelude.
+    """
+    global _prelude_cache
+    if _prelude_cache is not None:
+        return _prelude_cache
+
+    import os
+
+    # Get the path to prelude.pebble in the pebble package
+    prelude_path = os.path.join(os.path.dirname(__file__), 'prelude.pebble')
+
+    with open(prelude_path, 'r') as f:
+        source = f.read()
+
+    _prelude_cache = read(source)
+    return _prelude_cache
+
+
+def make_global_env(load_prelude=True) -> Environment:
+    """Create the global environment with primitive builtins.
+
+    Args:
+        load_prelude: If True (default), load the standard library prelude.
+                     If False, return environment with only primitive builtins.
+
+    Returns:
+        An Environment with starter builtins defined, and optionally prelude definitions.
     """
     # Lazy import to avoid circular dependency
     from pebble.builtins import builtin_table
@@ -637,6 +665,11 @@ def make_global_env() -> Environment:
     env = Environment()
     for name, fn in builtin_table(apply_proc).items():
         env.define(Symbol(name), fn)
+
+    if load_prelude:
+        prelude_forms = _load_prelude()
+        for form in prelude_forms:
+            seval(form, env)
 
     return env
 
