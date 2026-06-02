@@ -1107,3 +1107,59 @@
 ; so the stream builds lazily without infinite recursion
 (define (integers-from n)
   (stream-cons n (integers-from (+ n 1))))
+
+; ===== ROMAN NUMERAL CONVERSION =====
+
+; int->roman: (int->roman n) returns the Roman numeral string for integer n (1 <= n <= 3999)
+; Uses standard subtractive notation
+; Raises EvalError if n is not an integer or is outside 1..3999
+(define (int->roman n)
+  ; Validate input
+  (if (not (integer? n))
+    (error "int->roman: n must be an integer"))
+  (if (or (< n 1) (> n 3999))
+    (error "int->roman: n must be in range 1..3999"))
+  ; Value-symbol pairs in descending order
+  (let ((values (list 1000 900 500 400 100 90 50 40 10 9 5 4 1))
+        (symbols (list "M" "CM" "D" "CD" "C" "XC" "L" "XL" "X" "IX" "V" "IV" "I")))
+    (define (convert-helper n values symbols acc)
+      (if (null? values)
+        acc
+        (let ((val (car values))
+              (sym (car symbols)))
+          (if (>= n val)
+            (convert-helper (- n val) values symbols (string-append acc sym))
+            (convert-helper n (cdr values) (cdr symbols) acc)))))
+    (convert-helper n values symbols "")))
+
+; roman->int: (roman->int s) returns the integer value of a Roman numeral string s
+; Scans left to right: each letter's value is added, EXCEPT when a letter's value is
+; less than the value of the letter immediately after it, in which case it is subtracted
+; Letter values: I=1, V=5, X=10, L=50, C=100, D=500, M=1000
+(define (roman->int s)
+  (define (char-value c)
+    (cond
+      ((= c "I") 1)
+      ((= c "V") 5)
+      ((= c "X") 10)
+      ((= c "L") 50)
+      ((= c "C") 100)
+      ((= c "D") 500)
+      ((= c "M") 1000)
+      (else (error (string-append "roman->int: invalid character '" c "'")))))
+  (define (sum-helper s idx acc)
+    (if (>= idx (string-length s))
+      acc
+      (let ((current-char (substring s idx (+ idx 1)))
+            (current-val (char-value (substring s idx (+ idx 1)))))
+        (if (< idx (- (string-length s) 1))
+          (let ((next-char (substring s (+ idx 1) (+ idx 2)))
+                (next-val (char-value (substring s (+ idx 1) (+ idx 2)))))
+            (if (< current-val next-val)
+              ; Current value is less than next: subtract it
+              (sum-helper s (+ idx 1) (- acc current-val))
+              ; Current value is >= next: add it
+              (sum-helper s (+ idx 1) (+ acc current-val))))
+          ; Last character: always add
+          (+ acc current-val)))))
+  (sum-helper s 0 0))

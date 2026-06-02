@@ -544,6 +544,10 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `binary->number` — `(binary->number s)` parses a binary string and returns the integer value
 - `hex->number` — `(hex->number s)` parses a hexadecimal string and returns the integer value
 
+**Roman numeral conversion:**
+- `int->roman` — `(int->roman n)` converts an integer `n` (where 1 ≤ n ≤ 3999) to its Roman numeral string representation using standard subtractive notation (e.g., `(int->roman 944)` → `"CMXLIV"`). Raises an error if `n` is not an integer or is outside the valid range.
+- `roman->int` — `(roman->int s)` parses a Roman numeral string `s` and returns the integer value. Implements the standard left-to-right scanning rule: each letter's value is added, except when a letter's value is less than the letter immediately following it, in which case it is subtracted (e.g., `(roman->int "CMXLIV")` → `944`). Letter values: I=1, V=5, X=10, L=50, C=100, D=500, M=1000.
+
 **Higher-order functions:**
 - `compose` — function composition `(compose f g)` → `(lambda (x) (f (g x)))`
 - `const` — returns a constant function
