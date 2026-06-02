@@ -217,9 +217,17 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `reduce` — left fold over non-empty lists
 - `map2` — two-argument map (parallel iteration)
 - `zip` — pair corresponding elements
+- `sort` — returns a new list sorted in ascending order
+- `sort-with` — sorts using a custom binary predicate
+- `maximum`, `minimum` — largest/smallest element of a non-empty list
+- `contains?` — check if element is in list
+- `index-of` — returns zero-based index of first occurrence, or -1
+- `repeat` — returns a list with element repeated n times
+- `assoc` — lookup key in association list
 
 **String functions:**
 - `string-join` — join a list of strings with separator
+- `string-split` — split string by separator into a list of substrings
 - `flatten` — flatten arbitrarily-nested lists
 
 **I/O:**

@@ -207,6 +207,110 @@
         sep
         (string-join (cdr lst) sep)))))
 
+; ===== SORTING FUNCTIONS =====
+
+; sort: returns a new list with elements sorted in ascending order using <
+(define (sort lst)
+  (define (insert sorted-list elem)
+    (if (null? sorted-list)
+      (list elem)
+      (if (< elem (car sorted-list))
+        (cons elem sorted-list)
+        (cons (car sorted-list) (insert (cdr sorted-list) elem)))))
+  (foldl insert nil lst))
+
+; sort-with: returns a new list sorted using a custom binary predicate
+(define (sort-with less? lst)
+  (define (insert sorted-list elem)
+    (if (null? sorted-list)
+      (list elem)
+      (if (less? elem (car sorted-list))
+        (cons elem sorted-list)
+        (cons (car sorted-list) (insert (cdr sorted-list) elem)))))
+  (foldl insert nil lst))
+
+; ===== ASSOCIATION LIST FUNCTIONS =====
+
+; assoc: returns the first (key value) pair from alist where key equals the given key, or false
+(define (assoc key alist)
+  (if (null? alist)
+    false
+    (if (= (car (car alist)) key)
+      (car alist)
+      (assoc key (cdr alist)))))
+
+; ===== LIST SEARCH FUNCTIONS =====
+
+; contains?: returns true if x is an element of lst (using =), false otherwise
+(define (contains? lst x)
+  (if (null? lst)
+    false
+    (if (= (car lst) x)
+      true
+      (contains? (cdr lst) x))))
+
+; index-of: returns the zero-based index of the first element equal to x, or -1 if not found
+(define (index-of lst x)
+  (define (index-helper lst x idx)
+    (if (null? lst)
+      -1
+      (if (= (car lst) x)
+        idx
+        (index-helper (cdr lst) x (+ idx 1)))))
+  (index-helper lst x 0))
+
+; ===== LIST AGGREGATE FUNCTIONS =====
+
+; maximum: returns the largest element of a non-empty list
+(define (maximum lst)
+  (if (null? lst)
+    (error "maximum: empty list")
+    (reduce max lst)))
+
+; minimum: returns the smallest element of a non-empty list
+(define (minimum lst)
+  (if (null? lst)
+    (error "minimum: empty list")
+    (reduce min lst)))
+
+; ===== LIST GENERATION FUNCTIONS =====
+
+; repeat: returns a list containing x repeated n times
+(define (repeat x n)
+  (if (= n 0)
+    nil
+    (cons x (repeat x (- n 1)))))
+
+; ===== STRING MANIPULATION FUNCTIONS =====
+
+; string-split: splits string s into a list of substrings separated by sep
+(define (string-split s sep)
+  (if (= (string-length sep) 0)
+    (error "string-split: separator cannot be empty")
+    (let ()
+      (define (split-helper s sep parts current-part)
+        (if (= (string-length s) 0)
+          (reverse (cons current-part parts))
+          (let ((sep-len (string-length sep)))
+            (if (>= (string-length s) sep-len)
+              (if (= (substring s 0 sep-len) sep)
+                (split-helper
+                  (substring s sep-len (string-length s))
+                  sep
+                  (cons current-part parts)
+                  "")
+                (split-helper
+                  (substring s 1 (string-length s))
+                  sep
+                  parts
+                  (string-append current-part (substring s 0 1))))
+              (split-helper
+                (substring s 1 (string-length s))
+                sep
+                parts
+                (string-append current-part (substring s 0 1)))))))
+      (split-helper s sep nil ""))))
+
 ; ===== IO FUNCTIONS =====
 
 ; displayln: displays value followed by newline, returns nil
