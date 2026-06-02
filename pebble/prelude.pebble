@@ -55,6 +55,50 @@
     `(let (,(car bindings))
        (let* ,(cdr bindings) ,@body))))
 
+; case: (case key-expr clause...) where each clause is (datum-list body...) or (else body...)
+; build-clauses is a local helper function that recursively builds the nested if-expression
+(define (case-build-clauses clauses key-gensym)
+  (if (null? clauses)
+    nil
+    (let ((clause (car clauses)))
+      (if (and (pair? clause) (symbol? (car clause)) (= (symbol->string (car clause)) "else"))
+        `(begin ,@(cdr clause))
+        (if (null? (cdr clause))
+          ; Clause has no body: match any datum in the list, return nil
+          `(if (contains? (quote ,(car clause)) ,key-gensym)
+             nil
+             ,(case-build-clauses (cdr clauses) key-gensym))
+          ; Clause has body: match any datum in the list, evaluate body
+          `(if (contains? (quote ,(car clause)) ,key-gensym)
+             (begin ,@(cdr clause))
+             ,(case-build-clauses (cdr clauses) key-gensym)))))))
+
+(define-macro case
+  (lambda (key-expr . clauses)
+    (let ((key-gensym (gensym)))
+      `(let ((,key-gensym ,key-expr))
+         ,(case-build-clauses clauses key-gensym)))))
+
+; while: (while cond body...) - loop with tail-call optimization
+(define-macro (while cond . body)
+  (let ((loop-gensym (gensym)))
+    `(let ,loop-gensym ()
+       (if ,cond
+         (begin ,@body (,loop-gensym))
+         nil))))
+
+; dotimes: (dotimes (var count-expr) body...) - loop from 0 to count-1 with tail-call optimization
+(define-macro (dotimes binding . body)
+  (let ((var (car binding))
+        (count-expr (cadr binding))
+        (count-gensym (gensym))
+        (loop-gensym (gensym)))
+    `(let ((,count-gensym ,count-expr))
+       (let ,loop-gensym ((,var 0))
+         (if (< ,var ,count-gensym)
+           (begin ,@body (,loop-gensym (+ ,var 1)))
+           nil)))))
+
 ; ===== ACCESSORS =====
 
 ; car/cdr combinations

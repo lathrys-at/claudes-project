@@ -235,6 +235,9 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `and` and `or` — short-circuiting logical operators with variadic arity
 - `cond` — multi-branch conditional with optional else clause
 - `let*` — sequential/nested let bindings
+- `case` — pattern matching on literal datums with multiple clauses and optional else
+- `while` — tail-call optimized loop while a condition is true
+- `dotimes` — tail-call optimized loop iterating over a range of integers
 
 **List accessors:**
 - `caar`, `cadr`, `caddr`, `cddr` — classic nested car/cdr combinations

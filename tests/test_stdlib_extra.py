@@ -423,3 +423,361 @@ class TestStringSplit:
         env = make_global_env()
         result = eval_source('(string-split "a,,,b" ",")', env)
         assert list(result) == ["a", "", "", "b"]
+
+
+class TestCaseMacro:
+    """Tests for the case macro."""
+
+    def test_case_numeric_dispatch(self):
+        """Test case with numeric keys."""
+        env = make_global_env()
+        result = eval_source("""
+            (case 2
+              ((1) "one")
+              ((2 3) "two-or-three")
+              (else "other"))
+        """, env)
+        assert result == "two-or-three"
+
+    def test_case_first_match(self):
+        """Test that case returns the first matching clause."""
+        env = make_global_env()
+        result = eval_source("""
+            (case 2
+              ((1) "one")
+              ((2) "first-two")
+              ((2) "second-two"))
+        """, env)
+        assert result == "first-two"
+
+    def test_case_string_dispatch(self):
+        """Test case with string keys."""
+        env = make_global_env()
+        result = eval_source("""
+            (case "hello"
+              (("goodbye") "bye")
+              (("hello") "hi")
+              (else "unknown"))
+        """, env)
+        assert result == "hi"
+
+    def test_case_no_match_no_else(self):
+        """Test case when no clause matches and there is no else."""
+        env = make_global_env()
+        result = eval_source("""
+            (case 5
+              ((1 2 3) "small")
+              ((4) "four"))
+        """, env)
+        assert result == NIL
+
+    def test_case_else_fallthrough(self):
+        """Test case else clause."""
+        env = make_global_env()
+        result = eval_source("""
+            (case 100
+              ((1 2) "small")
+              ((10 20) "medium")
+              (else "large"))
+        """, env)
+        assert result == "large"
+
+    def test_case_key_evaluated_once(self):
+        """Test that the key expression is evaluated exactly once."""
+        env = make_global_env()
+        result = eval_source("""
+            (define counter 0)
+            (define increment-and-return
+              (lambda ()
+                (begin
+                  (set! counter (+ counter 1))
+                  2)))
+            (case (increment-and-return)
+              ((1) "one")
+              ((2) "two")
+              (else "other"))
+            counter
+        """, env)
+        # counter should be 1, meaning the key expr was evaluated exactly once
+        assert result == 1
+
+    def test_case_with_multiple_datums_in_clause(self):
+        """Test case with multiple datums in a single clause."""
+        env = make_global_env()
+        result = eval_source("""
+            (case "x"
+              (("a" "b" "c") "abc")
+              (("x" "y" "z") "xyz")
+              (else "other"))
+        """, env)
+        assert result == "xyz"
+
+    def test_case_empty_body_returns_nil(self):
+        """Test case clause with empty body."""
+        env = make_global_env()
+        result = eval_source("""
+            (case 2
+              ((1) "one")
+              ((2)))
+        """, env)
+        assert result == NIL
+
+    def test_case_multiple_body_forms(self):
+        """Test case with multiple body forms in a clause."""
+        env = make_global_env()
+        result = eval_source("""
+            (define x 0)
+            (case 2
+              ((1) (set! x 1) "one")
+              ((2) (set! x 2) (set! x (+ x 10)) "result")
+              (else "other"))
+            (list (list "result" "result") (list "x" x))
+        """, env)
+        assert list(result)[1][1] == 12
+
+    def test_case_symbol_dispatch(self):
+        """Test case with symbol keys."""
+        env = make_global_env()
+        result = eval_source("""
+            (case 'b
+              ((a) "first")
+              ((b c) "second")
+              (else "other"))
+        """, env)
+        assert result == "second"
+
+
+class TestWhileMacro:
+    """Tests for the while macro."""
+
+    def test_while_basic_loop_accumulation(self):
+        """Test basic while loop with accumulation."""
+        env = make_global_env()
+        result = eval_source("""
+            (define i 0)
+            (define sum 0)
+            (while (< i 5)
+              (set! sum (+ sum i))
+              (set! i (+ i 1)))
+            (list sum i)
+        """, env)
+        assert list(result) == [10, 5]
+
+    def test_while_returns_nil(self):
+        """Test that while returns nil."""
+        env = make_global_env()
+        result = eval_source("""
+            (define i 0)
+            (while (< i 3)
+              (set! i (+ i 1)))
+        """, env)
+        assert result == NIL
+
+    def test_while_condition_initially_false(self):
+        """Test while when condition is initially false."""
+        env = make_global_env()
+        result = eval_source("""
+            (define flag false)
+            (while false
+              (set! flag true))
+            flag
+        """, env)
+        assert result is False
+
+    def test_while_condition_initially_true(self):
+        """Test while when condition is initially true."""
+        env = make_global_env()
+        result = eval_source("""
+            (define i 0)
+            (while (< i 1)
+              (set! i (+ i 1)))
+            i
+        """, env)
+        assert result == 1
+
+    def test_while_countdown(self):
+        """Test while with countdown."""
+        env = make_global_env()
+        result = eval_source("""
+            (define count 10)
+            (while (> count 0)
+              (set! count (- count 1)))
+            count
+        """, env)
+        assert result == 0
+
+    def test_while_multiple_body_forms(self):
+        """Test while with multiple body forms."""
+        env = make_global_env()
+        result = eval_source("""
+            (define i 0)
+            (define sum 0)
+            (while (< i 3)
+              (set! sum (+ sum 1))
+              (set! sum (+ sum 10))
+              (set! i (+ i 1)))
+            sum
+        """, env)
+        # Each iteration: sum += 1, sum += 10 (adds 11 per iteration)
+        # 3 iterations: 11 * 3 = 33
+        assert result == 33
+
+    def test_while_large_loop_no_stack_overflow(self):
+        """Test that while with 20000 iterations does not overflow stack."""
+        env = make_global_env()
+        result = eval_source("""
+            (define i 0)
+            (define c 0)
+            (while (< c 20000)
+              (set! i (+ i 1))
+              (set! c (+ c 1)))
+            i
+        """, env)
+        assert result == 20000
+
+    def test_while_string_mutation(self):
+        """Test while with string concatenation."""
+        env = make_global_env()
+        result = eval_source("""
+            (define s "")
+            (define i 0)
+            (while (< i 3)
+              (set! s (string-append s "x"))
+              (set! i (+ i 1)))
+            s
+        """, env)
+        assert result == "xxx"
+
+
+class TestDotimesMacro:
+    """Tests for the dotimes macro."""
+
+    def test_dotimes_basic_accumulation(self):
+        """Test basic dotimes loop with accumulation."""
+        env = make_global_env()
+        result = eval_source("""
+            (define total 0)
+            (dotimes (i 5)
+              (set! total (+ total i)))
+            total
+        """, env)
+        assert result == 10
+
+    def test_dotimes_returns_nil(self):
+        """Test that dotimes returns nil."""
+        env = make_global_env()
+        result = eval_source("""
+            (dotimes (i 3)
+              (+ i 1))
+        """, env)
+        assert result == NIL
+
+    def test_dotimes_zero_iterations(self):
+        """Test dotimes with count 0."""
+        env = make_global_env()
+        result = eval_source("""
+            (define flag false)
+            (dotimes (i 0)
+              (set! flag true))
+            flag
+        """, env)
+        assert result is False
+
+    def test_dotimes_single_iteration(self):
+        """Test dotimes with count 1."""
+        env = make_global_env()
+        result = eval_source("""
+            (define x 0)
+            (dotimes (i 1)
+              (set! x (+ x 10)))
+            x
+        """, env)
+        assert result == 10
+
+    def test_dotimes_correct_iteration_count(self):
+        """Test that dotimes iterates correct number of times."""
+        env = make_global_env()
+        result = eval_source("""
+            (define count 0)
+            (dotimes (i 7)
+              (set! count (+ count 1)))
+            count
+        """, env)
+        assert result == 7
+
+    def test_dotimes_var_binding(self):
+        """Test that loop variable is correctly bound."""
+        env = make_global_env()
+        result = eval_source("""
+            (define sum 0)
+            (dotimes (i 4)
+              (set! sum (+ sum i)))
+            sum
+        """, env)
+        # 0 + 1 + 2 + 3 = 6
+        assert result == 6
+
+    def test_dotimes_multiple_body_forms(self):
+        """Test dotimes with multiple body forms."""
+        env = make_global_env()
+        result = eval_source("""
+            (define s "")
+            (define c 0)
+            (dotimes (i 3)
+              (set! s (string-append s "x"))
+              (set! c (+ c 1)))
+            (list s c)
+        """, env)
+        assert list(result) == ["xxx", 3]
+
+    def test_dotimes_negative_count(self):
+        """Test dotimes with negative count."""
+        env = make_global_env()
+        result = eval_source("""
+            (define flag false)
+            (dotimes (i -5)
+              (set! flag true))
+            flag
+        """, env)
+        # Negative count should result in 0 iterations
+        assert result is False
+
+    def test_dotimes_var_not_in_scope_after(self):
+        """Test that loop variable is scoped only to the loop body."""
+        env = make_global_env()
+        result = eval_source("""
+            (define x 100)
+            (dotimes (x 3)
+              (+ x 1))
+            x
+        """, env)
+        # x should still be 100 outside the loop
+        assert result == 100
+
+    def test_dotimes_large_count_no_stack_overflow(self):
+        """Test that dotimes with 20000 iterations does not overflow stack."""
+        env = make_global_env()
+        result = eval_source("""
+            (define c 0)
+            (dotimes (i 20000)
+              (set! c (+ c 1)))
+            c
+        """, env)
+        assert result == 20000
+
+    def test_dotimes_count_expr_evaluated_once(self):
+        """Test that count expression is evaluated exactly once."""
+        env = make_global_env()
+        result = eval_source("""
+            (define eval_count 0)
+            (define get_count
+              (lambda ()
+                (begin
+                  (set! eval_count (+ eval_count 1))
+                  5)))
+            (dotimes (i (get_count))
+              (+ i 1))
+            eval_count
+        """, env)
+        # get_count should be called exactly once
+        assert result == 1
