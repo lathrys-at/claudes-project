@@ -11,10 +11,11 @@ class TestTailCallOptimization:
         """Test tail-recursive accumulator over 100k iterations."""
         env = make_global_env()
         source = """
-        (define (sum-to n acc)
-          (if (= n 0)
-              acc
-              (sum-to (- n 1) (+ acc n))))
+        (define sum-to
+          (lambda (n acc)
+            (if (= n 0)
+                acc
+                (sum-to (- n 1) (+ acc n)))))
         (sum-to 100000 0)
         """
         from pebble.reader import read
@@ -30,14 +31,16 @@ class TestTailCallOptimization:
         """Test mutual tail recursion (even/odd pair) over 100k steps."""
         env = make_global_env()
         source = """
-        (define (is-even n)
-          (if (= n 0)
-              #t
-              (is-odd (- n 1))))
-        (define (is-odd n)
-          (if (= n 0)
-              #f
-              (is-even (- n 1))))
+        (define is-even
+          (lambda (n)
+            (if (= n 0)
+                true
+                (is-odd (- n 1)))))
+        (define is-odd
+          (lambda (n)
+            (if (= n 0)
+                false
+                (is-even (- n 1)))))
         """
         from pebble.reader import read
         forms = read(source)
@@ -62,12 +65,13 @@ class TestTailCallOptimization:
         """Test tail call as last form of begin, deeply iterated."""
         env = make_global_env()
         source = """
-        (define (countdown n)
-          (begin
-            (- n 1)
-            (if (= n 0)
-                "done"
-                (countdown (- n 1)))))
+        (define countdown
+          (lambda (n)
+            (begin
+              (- n 1)
+              (if (= n 0)
+                  "done"
+                  (countdown (- n 1))))))
         """
         from pebble.reader import read
         forms = read(source)
@@ -82,11 +86,12 @@ class TestTailCallOptimization:
         """Test tail call as last form of let body, deeply iterated."""
         env = make_global_env()
         source = """
-        (define (loop-with-let n)
-          (let ((x (+ n 1)))
-            (if (= n 0)
-                x
-                (loop-with-let (- n 1)))))
+        (define loop-with-let
+          (lambda (n)
+            (let ((x (+ n 1)))
+              (if (= n 0)
+                  x
+                  (loop-with-let (- n 1))))))
         """
         from pebble.reader import read
         forms = read(source)
@@ -126,10 +131,11 @@ class TestTailCallOptimization:
         """Regression: non-tail recursive factorial of small input."""
         env = make_global_env()
         source = """
-        (define (factorial n)
-          (if (= n 0)
-              1
-              (* n (factorial (- n 1)))))
+        (define factorial
+          (lambda (n)
+            (if (= n 0)
+                1
+                (* n (factorial (- n 1))))))
         """
         from pebble.reader import read
         forms = read(source)
@@ -144,7 +150,8 @@ class TestTailCallOptimization:
         """Regression: calling with wrong arity raises EvalError."""
         env = make_global_env()
         source = """
-        (define (takes-two a b) (+ a b))
+        (define takes-two
+          (lambda (a b) (+ a b)))
         """
         from pebble.reader import read
         forms = read(source)
@@ -166,10 +173,11 @@ class TestTailCallOptimization:
         """Test more complex tail recursion pattern with 50k iterations."""
         env = make_global_env()
         source = """
-        (define (power-sum n power acc)
-          (if (= n 0)
-              acc
-              (power-sum (- n 1) power (+ acc (expt n power)))))
+        (define power-sum
+          (lambda (n power acc)
+            (if (= n 0)
+                acc
+                (power-sum (- n 1) power (+ acc (expt n power))))))
         """
         from pebble.reader import read
         forms = read(source)
@@ -187,12 +195,13 @@ class TestTailCallOptimization:
         """Test nested if statements in tail position over 200k iterations."""
         env = make_global_env()
         source = """
-        (define (nested-if n)
-          (if (< n 100000)
-              (nested-if (+ n 1))
-              (if (< n 200000)
-                  (nested-if (+ n 1))
-                  n)))
+        (define nested-if
+          (lambda (n)
+            (if (< n 100000)
+                (nested-if (+ n 1))
+                (if (< n 200000)
+                    (nested-if (+ n 1))
+                    n))))
         """
         from pebble.reader import read
         forms = read(source)
@@ -207,14 +216,15 @@ class TestTailCallOptimization:
         """Test multiple forms in begin, with only last in tail position."""
         env = make_global_env()
         source = """
-        (define (begin-loop n)
-          (begin
-            (+ n 1)
-            (- n 1)
-            (* n 2)
-            (if (= n 0)
-                "end"
-                (begin-loop (- n 1)))))
+        (define begin-loop
+          (lambda (n)
+            (begin
+              (+ n 1)
+              (- n 1)
+              (* n 2)
+              (if (= n 0)
+                  "end"
+                  (begin-loop (- n 1))))))
         (begin-loop 5000)
         """
         from pebble.reader import read
@@ -227,13 +237,14 @@ class TestTailCallOptimization:
         """Test let with multiple bindings, last form in tail position."""
         env = make_global_env()
         source = """
-        (define (let-loop n)
-          (let ((x (+ n 1))
-                (y (- n 1))
-                (z (* n 2)))
-            (if (= n 0)
-                (+ x y z)
-                (let-loop (- n 1)))))
+        (define let-loop
+          (lambda (n)
+            (let ((x (+ n 1))
+                  (y (- n 1))
+                  (z (* n 2)))
+              (if (= n 0)
+                  (+ x y z)
+                  (let-loop (- n 1))))))
         (let-loop 5000)
         """
         from pebble.reader import read
@@ -247,10 +258,11 @@ class TestTailCallOptimization:
         """Test tail recursion that builds a list result via tail call."""
         env = make_global_env()
         source = """
-        (define (range n acc)
-          (if (= n 0)
-              acc
-              (range (- n 1) (cons n acc))))
+        (define range
+          (lambda (n acc)
+            (if (= n 0)
+                acc
+                (range (- n 1) (cons n acc)))))
         (length (range 100000 (list)))
         """
         from pebble.reader import read
@@ -263,9 +275,10 @@ class TestTailCallOptimization:
         """Test if without else branch in tail position."""
         env = make_global_env()
         source = """
-        (define (countdown-no-else n)
-          (if (> n 0)
-              (countdown-no-else (- n 1))))
+        (define countdown-no-else
+          (lambda (n)
+            (if (> n 0)
+                (countdown-no-else (- n 1)))))
         (countdown-no-else 10000)
         """
         from pebble.reader import read
@@ -280,10 +293,11 @@ class TestTailCallOptimization:
         """Test tail recursion with multiple parameter accumulation."""
         env = make_global_env()
         source = """
-        (define (acc-multiple n sum product)
-          (if (= n 0)
-              (list sum product)
-              (acc-multiple (- n 1) (+ sum n) (* product n))))
+        (define acc-multiple
+          (lambda (n sum product)
+            (if (= n 0)
+                (list sum product)
+                (acc-multiple (- n 1) (+ sum n) (* product n)))))
         (acc-multiple 1000 0 1)
         """
         from pebble.reader import read
@@ -301,12 +315,13 @@ class TestTailCallOptimization:
         """Test tail recursion alternating between operations."""
         env = make_global_env()
         source = """
-        (define (alternate n direction result)
-          (if (= n 0)
-              result
-              (if (= direction 1)
-                  (alternate (- n 1) -1 (+ result n))
-                  (alternate (- n 1) 1 (- result n)))))
+        (define alternate
+          (lambda (n direction result)
+            (if (= n 0)
+                result
+                (if (= direction 1)
+                    (alternate (- n 1) -1 (+ result n))
+                    (alternate (- n 1) 1 (- result n))))))
         (alternate 10000 1 0)
         """
         from pebble.reader import read
@@ -315,3 +330,24 @@ class TestTailCallOptimization:
         result = seval(forms[1], env)
         # alternates +n and -n, so result should be close to 0
         assert result in [0, -1, 1, 5000]  # depends on iteration count parity
+
+    def test_regression_hash_t_undefined(self):
+        """Regression: #t literal should raise EvalError (undefined symbol)."""
+        env = make_global_env()
+        with pytest.raises(EvalError, match="undefined symbol"):
+            seval(Symbol("#t"), env)
+
+    def test_regression_hash_f_undefined(self):
+        """Regression: #f literal should raise EvalError (undefined symbol)."""
+        env = make_global_env()
+        with pytest.raises(EvalError, match="undefined symbol"):
+            seval(Symbol("#f"), env)
+
+    def test_regression_define_function_syntax_not_allowed(self):
+        """Regression: (define (f x) x) should raise EvalError (first arg must be symbol)."""
+        env = make_global_env()
+        source = "(define (f x) x)"
+        with pytest.raises(EvalError, match="define: first argument must be a symbol"):
+            from pebble.reader import read
+            forms = read(source)
+            seval(forms[0], env)
