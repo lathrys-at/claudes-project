@@ -446,6 +446,65 @@
         (index-helper (cdr lst) x (+ idx 1)))))
   (index-helper lst x 0))
 
+; ===== LIST SET OPERATIONS =====
+; All functions treat lists as sets and preserve order of first appearance with no duplicates
+
+; unique: returns lst with duplicate elements removed, keeping first occurrence
+; Uses tail-recursive helper with accumulator and reverse for stack-safety and efficiency
+(define (unique lst)
+  (define (unique-helper lst acc)
+    (if (null? lst)
+      (reverse acc)
+      (let ((elem (car lst)))
+        (if (contains? acc elem)
+          (unique-helper (cdr lst) acc)
+          (unique-helper (cdr lst) (cons elem acc))))))
+  (unique-helper lst nil))
+
+; Helper for union: build unique list from b excluding elements in a and already in acc
+(define (union-helper-b lst a acc)
+  (if (null? lst)
+    (reverse acc)
+    (let ((elem (car lst)))
+      (if (or (contains? a elem) (contains? acc elem))
+        (union-helper-b (cdr lst) a acc)
+        (union-helper-b (cdr lst) a (cons elem acc))))))
+
+; union: returns the set union of two lists
+; Includes each distinct element from a or b, with a's elements first in their original order,
+; followed by distinct elements from b that are not in a
+(define (union a b)
+  (let ((unique-a (unique a)))
+    (append unique-a (union-helper-b b unique-a nil))))
+
+; Helper for intersection
+(define (intersection-helper lst b acc)
+  (if (null? lst)
+    (reverse acc)
+    (let ((elem (car lst)))
+      (if (and (contains? b elem) (not (contains? acc elem)))
+        (intersection-helper (cdr lst) b (cons elem acc))
+        (intersection-helper (cdr lst) b acc)))))
+
+; intersection: returns the distinct elements that appear in both a and b
+; Preserves the order they appear in a
+(define (intersection a b)
+  (intersection-helper a b nil))
+
+; Helper for difference
+(define (difference-helper lst b acc)
+  (if (null? lst)
+    (reverse acc)
+    (let ((elem (car lst)))
+      (if (and (not (contains? b elem)) (not (contains? acc elem)))
+        (difference-helper (cdr lst) b (cons elem acc))
+        (difference-helper (cdr lst) b acc)))))
+
+; difference: returns the distinct elements of a that do not appear in b
+; Preserves the order they appear in a
+(define (difference a b)
+  (difference-helper a b nil))
+
 ; ===== LIST AGGREGATE FUNCTIONS =====
 
 ; maximum: returns the largest element of a non-empty list

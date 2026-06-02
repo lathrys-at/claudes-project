@@ -560,6 +560,12 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `repeat` — returns a list with element repeated n times
 - `assoc` — lookup key in association list
 
+**Set operations on lists:**
+- `unique` — `(unique lst)` returns a list with duplicate elements removed, preserving the order of first appearance of each element
+- `union` — `(union a b)` returns the set union of two lists: distinct elements from both, with elements from `a` first (in their original order), followed by elements from `b` not in `a`
+- `intersection` — `(intersection a b)` returns the distinct elements that appear in both `a` and `b`, in the order they appear in `a`
+- `difference` — `(difference a b)` returns the distinct elements of `a` that do not appear in `b`, in the order they appear in `a`
+
 **Vector functions (standard library):**
 - `vector-map` — `(vector-map f v)` returns a new vector where each element is `(f (vector-ref v i))` for index i. The original vector `v` is not modified.
 - `vector-for-each` — `(vector-for-each f v)` applies `(f element)` to each element of `v` in order for side effects, returning `nil`.
