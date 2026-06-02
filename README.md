@@ -365,8 +365,13 @@ Unlike Pebble lists and hash maps (which are immutable), vectors support mutatio
 (vector-push! v 4)                  ; => nil (appends 4, grows vector by 1)
 (vector-length v)                   ; => 4
 
+; Stack operations (vectors as LIFO stacks)
+(vector-last v)                     ; => 4 (peek at last element, doesn't modify)
+(vector-pop! v)                     ; => 4 (remove and return last element)
+(vector-length v)                   ; => 3 (shrinks after pop)
+
 ; Conversions
-(vector->list v)                    ; => (99 2 3 4) (creates immutable list)
+(vector->list v)                    ; => (99 2 3) (creates immutable list)
 (list->vector (list 1 2 3))         ; => #(1 2 3) (creates mutable vector)
 
 ; Testing and predicates
@@ -432,6 +437,8 @@ Pebble provides a comprehensive set of primitive builtin functions implemented i
 - `vector-length` — vector length
 - `vector->list`, `list->vector` — conversions
 - `vector-push!` — append to vector
+- `vector-pop!` — remove and return the last element (raises error if empty)
+- `vector-last` — return the last element without modifying (raises error if empty)
 - `vector-map` — apply function to each element and return new vector
 - `vector-for-each` — apply function to each element for side effects
 - `vector-copy` — create an independent copy of a vector

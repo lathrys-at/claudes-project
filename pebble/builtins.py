@@ -509,6 +509,22 @@ def builtin_table(apply_proc):
         v.append(x)
         return NIL
 
+    def builtin_vector_pop(v):
+        """(vector-pop! v) -> remove and return the last element of v."""
+        if not isinstance(v, PebbleVector):
+            raise EvalError(f"vector-pop!: argument must be a vector, got {type(v).__name__}")
+        if len(v) == 0:
+            raise EvalError(f"vector-pop!: cannot pop from empty vector")
+        return v.pop()
+
+    def builtin_vector_last(v):
+        """(vector-last v) -> return the last element of v without modifying it."""
+        if not isinstance(v, PebbleVector):
+            raise EvalError(f"vector-last: argument must be a vector, got {type(v).__name__}")
+        if len(v) == 0:
+            raise EvalError(f"vector-last: cannot get last element of empty vector")
+        return v[-1]
+
     # ===== STRING OPERATIONS =====
 
     def builtin_string_append(*args):
@@ -1045,6 +1061,8 @@ def builtin_table(apply_proc):
         "vector->list": builtin_vector_to_list,
         "list->vector": builtin_list_to_vector,
         "vector-push!": builtin_vector_push,
+        "vector-pop!": builtin_vector_pop,
+        "vector-last": builtin_vector_last,
         "string-append": builtin_string_append,
         "string-length": builtin_string_length,
         "substring": builtin_substring,

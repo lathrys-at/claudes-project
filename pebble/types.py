@@ -114,6 +114,10 @@ class PebbleVector:
         """Append value to the end of the vector."""
         self._data.append(value)
 
+    def pop(self):
+        """Remove and return the last element of the vector."""
+        return self._data.pop()
+
 
 # The canonical empty list / nil.
 NIL = PebbleList()
