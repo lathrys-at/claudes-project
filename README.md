@@ -6,6 +6,8 @@ It is being built incrementally. The core is a classic s-expression Lisp:
 a reader (tokenizer + parser), an evaluator with a handful of special forms,
 a set of primitive builtins, and a REPL.
 
+**New to Pebble?** Start with [The Pebble Language Guide](docs/GUIDE.md) for a comprehensive tutorial with runnable examples.
+
 ## Status
 
 - [x] Reader (tokenizer + parser)
