@@ -8,6 +8,66 @@ class EvalError(Exception):
     pass
 
 
+def parse_param_spec(spec):
+    """Parse a lambda/macro parameter specification.
+    Returns a tuple (fixed_params, rest_param) where fixed_params is a list of
+    Symbols and rest_param is a Symbol or None.
+    Accepts:
+      - a bare Symbol  -> ([], that_symbol)        # collects all args
+      - a PebbleList of Symbols with no dot -> (list, None)
+      - a PebbleList containing a single Symbol('.') as the second-to-last
+        element, followed by exactly one rest Symbol -> (fixed_before_dot, rest_symbol)
+    Raises EvalError on malformed specs (dot not in the second-to-last position,
+    more than one dot, missing rest symbol after dot, or non-Symbol params).
+    """
+    # If spec is a bare Symbol, return ([], spec)
+    if isinstance(spec, Symbol):
+        return ([], spec)
+
+    # If spec is a PebbleList
+    if isinstance(spec, PebbleList):
+        # Find indices of any element equal to Symbol(".")
+        dot_indices = []
+        for i, elem in enumerate(spec):
+            if isinstance(elem, Symbol) and str(elem) == ".":
+                dot_indices.append(i)
+
+        # No dots: all elements must be Symbols
+        if len(dot_indices) == 0:
+            for param in spec:
+                if not isinstance(param, Symbol):
+                    raise EvalError(f"parameter must be a symbol, got {type(param).__name__}")
+            return (list(spec), None)
+
+        # Exactly one dot
+        if len(dot_indices) == 1:
+            dot_index = dot_indices[0]
+            # Dot must be at position len(spec) - 2
+            if dot_index != len(spec) - 2:
+                raise EvalError("malformed rest parameter: dot must be second-to-last")
+            # There must be exactly one element after the dot
+            if len(spec) - dot_index != 2:
+                raise EvalError("malformed rest parameter: missing rest symbol after dot")
+
+            # All elements before the dot must be Symbols
+            for param in spec[:dot_index]:
+                if not isinstance(param, Symbol):
+                    raise EvalError(f"parameter must be a symbol, got {type(param).__name__}")
+
+            # The element after the dot must be a Symbol
+            rest_param = spec[dot_index + 1]
+            if not isinstance(rest_param, Symbol):
+                raise EvalError(f"rest parameter must be a symbol, got {type(rest_param).__name__}")
+
+            return (list(spec[:dot_index]), rest_param)
+
+        # Two or more dots
+        raise EvalError("malformed parameter list: multiple dots")
+
+    # Not a Symbol and not a PebbleList
+    raise EvalError("invalid parameter specification")
+
+
 class Environment:
     """A lexical scope for variable bindings."""
 
@@ -85,22 +145,34 @@ class Environment:
 class Procedure:
     """A Pebble closure (lambda function)."""
 
-    def __init__(self, params, body, env):
+    def __init__(self, params, body, env, rest=None):
         """Create a procedure.
 
         Args:
             params: List of Symbols (the formal parameters).
             body: List of forms to evaluate in the body.
             env: The Environment where this procedure was defined (closure).
+            rest: Optional Symbol for collecting remaining arguments as a PebbleList.
         """
         self.params = params
         self.body = body
         self.env = env
+        self.rest = rest
 
     def __repr__(self):
         """Return a string representation of the procedure."""
-        param_names = " ".join(str(p) for p in self.params)
-        return f"<procedure ({param_names})>"
+        if self.rest is not None:
+            if len(self.params) == 0:
+                # Bare symbol parameter: (lambda args ...)
+                return f"<procedure {self.rest}>"
+            else:
+                # Dotted rest: (lambda (a b . rest) ...)
+                param_names = " ".join(str(p) for p in self.params)
+                return f"<procedure ({param_names} . {self.rest})>"
+        else:
+            # No rest parameter
+            param_names = " ".join(str(p) for p in self.params)
+            return f"<procedure ({param_names})>"
 
 
 class Macro:
@@ -256,14 +328,12 @@ def seval(expr, env):
                     if not isinstance(macro_name, Symbol):
                         raise EvalError(f"define-macro: macro name must be a symbol, got {type(macro_name).__name__}")
 
-                    macro_params = list(params_and_name[1:])
-                    # Validate all params are symbols
-                    for param in macro_params:
-                        if not isinstance(param, Symbol):
-                            raise EvalError(f"define-macro: parameter must be a symbol, got {type(param).__name__}")
+                    # Parse the parameters (everything after the name)
+                    param_spec = PebbleList(params_and_name[1:])
+                    fixed, rest = parse_param_spec(param_spec)
 
                     body = list(expr[2:])
-                    transformer = Procedure(macro_params, body, env)
+                    transformer = Procedure(fixed, body, env, rest=rest)
                     macro = Macro(transformer)
                     env.define(macro_name, macro)
                     return macro_name
@@ -300,15 +370,9 @@ def seval(expr, env):
             elif head == "lambda":
                 if len(expr) < 2:
                     raise EvalError(f"lambda requires at least 1 argument (params list), got {len(expr) - 1}")
-                params_list = expr[1]
-                if not isinstance(params_list, PebbleList):
-                    raise EvalError(f"lambda: parameter list must be a list, got {type(params_list).__name__}")
-                # Validate that all params are symbols
-                for param in params_list:
-                    if not isinstance(param, Symbol):
-                        raise EvalError(f"lambda: parameter must be a symbol, got {type(param).__name__}")
+                fixed, rest = parse_param_spec(expr[1])
                 body = list(expr[2:])
-                return Procedure(list(params_list), body, env)
+                return Procedure(fixed, body, env, rest=rest)
 
             elif head == "let":
                 if len(expr) < 2:
@@ -381,13 +445,26 @@ def apply_proc(proc, args):
     """
     if isinstance(proc, Procedure):
         # Check arity
-        if len(args) != len(proc.params):
-            raise EvalError(f"expected {len(proc.params)} arguments, got {len(args)}")
-
-        # Create new env with bindings
-        call_env = Environment(parent=proc.env)
-        for param, arg in zip(proc.params, args):
-            call_env.define(param, arg)
+        if proc.rest is None:
+            # No rest parameter: require exact arity
+            if len(args) != len(proc.params):
+                raise EvalError(f"expected {len(proc.params)} arguments, got {len(args)}")
+            # Create new env with bindings
+            call_env = Environment(parent=proc.env)
+            for param, arg in zip(proc.params, args):
+                call_env.define(param, arg)
+        else:
+            # Rest parameter: require at least as many args as fixed params
+            if len(args) < len(proc.params):
+                raise EvalError(f"expected at least {len(proc.params)} arguments, got {len(args)}")
+            # Create new env with bindings
+            call_env = Environment(parent=proc.env)
+            # Bind fixed params
+            for param, arg in zip(proc.params, args):
+                call_env.define(param, arg)
+            # Bind rest param to remaining args as a PebbleList
+            rest_args = PebbleList(args[len(proc.params):])
+            call_env.define(proc.rest, rest_args)
 
         # Evaluate body
         if len(proc.body) == 0:

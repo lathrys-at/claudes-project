@@ -66,3 +66,21 @@ Define macros with `define-macro` in two styles:
 
 Macros expand at call time by applying the transformer procedure to unevaluated arguments.
 Use `gensym` to generate fresh symbols and avoid variable capture.
+
+### Variadic Parameters
+
+Lambdas and macros support variadic parameters to collect remaining arguments:
+
+```scheme
+; Bare symbol collects all arguments
+(define sum-all (lambda xs (foldl + 0 xs)))
+(sum-all 1 2 3 4)  ; => 10
+
+; Dotted rest syntax for fixed + rest parameters
+(define cons-with-prefix (lambda (prefix . rest) (cons prefix rest)))
+(cons-with-prefix "x" 1 2)  ; => ("x" 1 2)
+
+; Macros support variadic parameters too
+(define-macro (when test . body)
+  `(if ,test (begin ,@body) nil))
+```
