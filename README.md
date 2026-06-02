@@ -373,6 +373,18 @@ Pebble provides a comprehensive set of primitive builtin functions implemented i
 - `string-append` — concatenate strings
 - `string-length` — string length
 - `substring` — extract substring
+- `string-upcase` — convert to uppercase
+- `string-downcase` — convert to lowercase
+- `string-contains?` — check if substring is contained in string
+- `string-index` — find first index of substring (or -1 if not found)
+- `string-prefix?` — check if string starts with prefix
+- `string-suffix?` — check if string ends with suffix
+- `string-repeat` — repeat string n times
+- `string-replace` — replace all occurrences of substring
+- `string-trim` — remove leading and trailing whitespace
+- `char-at` — get character at index as a one-character string
+- `string->list` — convert string to list of one-character strings
+- `list->string` — concatenate list of strings
 - `string->symbol`, `symbol->string` — conversions
 - `number->string`, `string->number` — numeric conversions
 

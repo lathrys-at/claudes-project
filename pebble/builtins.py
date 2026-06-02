@@ -564,6 +564,109 @@ def builtin_table(apply_proc):
         except ValueError:
             return False
 
+    def builtin_string_upcase(s):
+        """(string-upcase s) -> uppercase copy of s."""
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-upcase: argument must be a string, got {type(s).__name__}")
+        return s.upper()
+
+    def builtin_string_downcase(s):
+        """(string-downcase s) -> lowercase copy of s."""
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-downcase: argument must be a string, got {type(s).__name__}")
+        return s.lower()
+
+    def builtin_string_contains(s, sub):
+        """(string-contains? s sub) -> True if sub occurs in s, else False."""
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-contains?: first argument must be a string, got {type(s).__name__}")
+        if not isinstance(sub, str) or isinstance(sub, Symbol):
+            raise EvalError(f"string-contains?: second argument must be a string, got {type(sub).__name__}")
+        return sub in s
+
+    def builtin_string_index(s, sub):
+        """(string-index s sub) -> zero-based index of first occurrence of sub, or -1."""
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-index: first argument must be a string, got {type(s).__name__}")
+        if not isinstance(sub, str) or isinstance(sub, Symbol):
+            raise EvalError(f"string-index: second argument must be a string, got {type(sub).__name__}")
+        try:
+            return s.index(sub)
+        except ValueError:
+            return -1
+
+    def builtin_string_prefix(prefix, s):
+        """(string-prefix? prefix s) -> True if s starts with prefix."""
+        if not isinstance(prefix, str) or isinstance(prefix, Symbol):
+            raise EvalError(f"string-prefix?: first argument must be a string, got {type(prefix).__name__}")
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-prefix?: second argument must be a string, got {type(s).__name__}")
+        return s.startswith(prefix)
+
+    def builtin_string_suffix(suffix, s):
+        """(string-suffix? suffix s) -> True if s ends with suffix."""
+        if not isinstance(suffix, str) or isinstance(suffix, Symbol):
+            raise EvalError(f"string-suffix?: first argument must be a string, got {type(suffix).__name__}")
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-suffix?: second argument must be a string, got {type(s).__name__}")
+        return s.endswith(suffix)
+
+    def builtin_string_repeat(s, n):
+        """(string-repeat s n) -> s repeated n times. n must be a non-negative integer."""
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-repeat: first argument must be a string, got {type(s).__name__}")
+        if not isinstance(n, int) or isinstance(n, bool):
+            raise EvalError(f"string-repeat: second argument must be an integer, got {type(n).__name__}")
+        if n < 0:
+            raise EvalError(f"string-repeat: count must be non-negative, got {n}")
+        return s * n
+
+    def builtin_string_replace(s, old, new):
+        """(string-replace s old new) -> copy of s with old replaced by new.
+
+        old must be a non-empty string; new may be any string.
+        """
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-replace: first argument must be a string, got {type(s).__name__}")
+        if not isinstance(old, str) or isinstance(old, Symbol):
+            raise EvalError(f"string-replace: second argument must be a string, got {type(old).__name__}")
+        if not isinstance(new, str) or isinstance(new, Symbol):
+            raise EvalError(f"string-replace: third argument must be a string, got {type(new).__name__}")
+        if len(old) == 0:
+            raise EvalError("string-replace: old string must be non-empty")
+        return s.replace(old, new)
+
+    def builtin_string_trim(s):
+        """(string-trim s) -> s with leading and trailing whitespace removed."""
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string-trim: argument must be a string, got {type(s).__name__}")
+        return s.strip()
+
+    def builtin_char_at(s, i):
+        """(char-at s i) -> one-character string at index i."""
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"char-at: first argument must be a string, got {type(s).__name__}")
+        if not isinstance(i, int) or isinstance(i, bool):
+            raise EvalError(f"char-at: second argument must be an integer, got {type(i).__name__}")
+        if i < 0 or i >= len(s):
+            raise EvalError(f"char-at: index {i} out of range for string of length {len(s)}")
+        return s[i]
+
+    def builtin_string_to_list(s):
+        """(string->list s) -> PebbleList of one-character strings."""
+        if not isinstance(s, str) or isinstance(s, Symbol):
+            raise EvalError(f"string->list: argument must be a string, got {type(s).__name__}")
+        return PebbleList(list(s))
+
+    def builtin_list_to_string(lst):
+        """(list->string lst) -> concatenation of strings in the list."""
+        if not isinstance(lst, PebbleList):
+            raise EvalError(f"list->string: argument must be a list, got {type(lst).__name__}")
+        for elem in lst:
+            if not isinstance(elem, str) or isinstance(elem, Symbol):
+                raise EvalError(f"list->string: all elements must be strings, got {type(elem).__name__}")
+        return "".join(lst)
+
     # ===== IO =====
 
     def builtin_print(*args):
@@ -814,6 +917,18 @@ def builtin_table(apply_proc):
         "symbol->string": builtin_symbol_to_string,
         "number->string": builtin_number_to_string,
         "string->number": builtin_string_to_number,
+        "string-upcase": builtin_string_upcase,
+        "string-downcase": builtin_string_downcase,
+        "string-contains?": builtin_string_contains,
+        "string-index": builtin_string_index,
+        "string-prefix?": builtin_string_prefix,
+        "string-suffix?": builtin_string_suffix,
+        "string-repeat": builtin_string_repeat,
+        "string-replace": builtin_string_replace,
+        "string-trim": builtin_string_trim,
+        "char-at": builtin_char_at,
+        "string->list": builtin_string_to_list,
+        "list->string": builtin_list_to_string,
         "print": builtin_print,
         "display": builtin_display,
         "newline": builtin_newline,
