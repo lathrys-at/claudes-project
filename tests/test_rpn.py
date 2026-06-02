@@ -117,3 +117,46 @@ class TestRPN:
         with pytest.raises(Exception) as exc_info:
             eval_source("(rpn \"\")", env)
         assert "empty stack" in str(exc_info.value)
+
+    # Regression tests for zero operand handling (bug fix)
+    def test_rpn_zero_alone(self, rpn_env_and_output):
+        """Test zero as single operand: (rpn "0") = 0"""
+        env, _ = rpn_env_and_output
+        result = eval_source("(rpn \"0\")", env)
+        assert result == 0
+
+    def test_rpn_zero_addition_right(self, rpn_env_and_output):
+        """Test zero addition (right operand): 5 0 + = 5"""
+        env, _ = rpn_env_and_output
+        result = eval_source("(rpn \"5 0 +\")", env)
+        assert result == 5
+
+    def test_rpn_zero_addition_left(self, rpn_env_and_output):
+        """Test zero addition (left operand): 0 5 + = 5"""
+        env, _ = rpn_env_and_output
+        result = eval_source("(rpn \"0 5 +\")", env)
+        assert result == 5
+
+    def test_rpn_zero_addition_both(self, rpn_env_and_output):
+        """Test zero addition (both operands): 0 0 + = 0"""
+        env, _ = rpn_env_and_output
+        result = eval_source("(rpn \"0 0 +\")", env)
+        assert result == 0
+
+    def test_rpn_zero_subtraction(self, rpn_env_and_output):
+        """Test zero subtraction: 7 0 - = 7"""
+        env, _ = rpn_env_and_output
+        result = eval_source("(rpn \"7 0 -\")", env)
+        assert result == 7
+
+    def test_rpn_zero_multiplication(self, rpn_env_and_output):
+        """Test zero multiplication: 0 0 * = 0"""
+        env, _ = rpn_env_and_output
+        result = eval_source("(rpn \"0 0 *\")", env)
+        assert result == 0
+
+    def test_rpn_complex_with_zero(self, rpn_env_and_output):
+        """Test complex expression with zero: 3 0 4 + * = 12"""
+        env, _ = rpn_env_and_output
+        result = eval_source("(rpn \"3 0 4 + *\")", env)
+        assert result == 12

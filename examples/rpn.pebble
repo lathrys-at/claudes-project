@@ -12,7 +12,7 @@
         (let ((num (string->number token)))
           (cond
             ; If token is a number, push it onto the stack
-            ((not (= num false))
+            ((number? num)
              (vector-push! stack num))
 
             ; If token is +, -, or *, pop two operands and push result
