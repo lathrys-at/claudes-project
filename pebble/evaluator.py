@@ -1,6 +1,6 @@
 """Evaluator for Pebble Lisp."""
 from pebble.types import Symbol, PebbleList, NIL
-from pebble.reader import read
+from pebble.reader import read, ReadError
 
 
 class EvalError(Exception):
@@ -539,6 +539,42 @@ def _seval_internal(expr, env):
                     _trampoline(_seval_internal(form, env))
                 # The last form is in tail position
                 return _TailCall(body[-1], env)
+
+            elif head == "load":
+                # (load PATH-EXPR)
+                if len(expr) != 2:
+                    raise EvalError(f"load requires exactly 1 argument, got {len(expr) - 1}")
+
+                # Evaluate the path expression in the current environment
+                path_expr = expr[1]
+                path = _trampoline(_seval_internal(path_expr, env))
+
+                # The result must be a string
+                if not isinstance(path, str):
+                    raise EvalError(f"load: path must be a string, got {type(path).__name__}")
+
+                # Try to read the file
+                try:
+                    with open(path, 'r') as f:
+                        source = f.read()
+                except FileNotFoundError:
+                    raise EvalError(f"load: file not found: {path}")
+                except IOError as e:
+                    raise EvalError(f"load: cannot read file {path}: {e}")
+
+                # Parse the file contents
+                try:
+                    forms = read(source)
+                except ReadError as e:
+                    raise EvalError(f"load: parse error in {path}: {e}")
+
+                # Evaluate each form in order in the current environment
+                result = NIL
+                for form in forms:
+                    result = _trampoline(_seval_internal(form, env))
+
+                # Return the value of the last form
+                return result
 
             elif head == "try":
                 # (try EXPR (catch NAME HANDLER...))

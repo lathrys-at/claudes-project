@@ -201,6 +201,23 @@ Pebble supports try/catch error handling through the `try` special form:
 
 The `try` form evaluates a protected expression. If evaluation succeeds, the `try` form returns the value of the expression. If any Pebble evaluation error occurs (from the `error` builtin, division by zero, car on an empty list, undefined symbols, arity mismatches, etc.), the `catch` handler is evaluated instead. The catch clause binds the error's message (a string) to a variable name scoped to the handler only. Multiple forms in the handler are evaluated in order, and the value of the last form is returned. If the handler is empty, `nil` is returned.
 
+### Multi-File Programs: `load`
+
+For larger programs, Pebble supports the `load` special form to evaluate another Pebble source file into the current environment:
+
+```scheme
+; Load and evaluate a file
+(load "lib.pebble")
+
+; After loading, definitions from the file are available
+(my-function 42)
+
+; load returns the value of the last form in the file
+(define result (load "compute.pebble"))
+```
+
+The `load` special form evaluates all top-level forms in the specified file (relative to the current working directory) in the current environment. Any `define` or `define-macro` in the loaded file becomes immediately visible to the caller, enabling a clean way to organize multi-file programs. The form returns the value of the last form in the loaded file (or `nil` if the file is empty). If the file does not exist or contains syntax errors, an error is raised.
+
 ### Variadic Parameters
 
 Lambdas and macros support variadic parameters to collect remaining arguments:
