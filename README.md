@@ -16,18 +16,47 @@ a set of primitive builtins, and a REPL.
 - [x] Tail-call optimization (tail calls execute in bounded stack space via trampolining)
 - [x] In-language standard library
 
+## Installation
+
+Install the package in development mode:
+
+```
+pip install -e .
+```
+
+This installs the `pebble` console command, allowing you to run Pebble from anywhere on your system.
+
 ## Usage
+
+### As a console command
 
 Start the interactive REPL:
 
 ```
-python -m pebble
+pebble
 ```
 
 Run a script file:
 
 ```
+pebble examples/fizzbuzz.pebble
+```
+
+Evaluate a Pebble expression directly:
+
+```
+pebble -c "(+ 1 2)"
+pebble -c "(sort (list 3 1 2))"
+```
+
+### Using `python -m pebble`
+
+Alternatively, you can use the module directly without installing:
+
+```
+python -m pebble
 python -m pebble path/to/script.pebble
+python -m pebble -c "(+ 1 2)"
 ```
 
 ## Running the tests

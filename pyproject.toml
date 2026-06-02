@@ -1,8 +1,21 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "pebble-lisp"
 version = "0.1.0"
 description = "A small Lisp interpreter."
 requires-python = ">=3.10"
+
+[project.scripts]
+pebble = "pebble.cli:main"
+
+[tool.setuptools]
+packages = ["pebble"]
+
+[tool.setuptools.package-data]
+pebble = ["prelude.pebble"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

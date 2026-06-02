@@ -60,10 +60,12 @@ def repl(input_fn=input, output_fn=print, env=None):
                 forms = read(buffer)
                 # Successfully parsed - evaluate all forms
                 try:
+                    result = None
                     for form in forms:
                         result = seval(form, env)
-                    # Print the result of the last form
-                    output_fn(pebble_repr(result))
+                    # Print the result of the last form (only if there were forms)
+                    if result is not None:
+                        output_fn(pebble_repr(result))
                     buffer = ""
                 except EvalError as e:
                     # Evaluation error - print and continue
