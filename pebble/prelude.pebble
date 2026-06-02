@@ -165,6 +165,75 @@
 ; odd?: test if number is not divisible by 2
 (define (odd? n) (not (even? n)))
 
+; ===== BASE CONVERSION FUNCTIONS =====
+
+; number->base: convert a non-negative integer to a string representation in a given base (2-16)
+; (number->base n base) returns string representation using lowercase digits 0-9a-f
+; Raises EvalError if n is negative/non-integer, or if base is not in 2..16
+(define (number->base n base)
+  ; Check that n is a non-negative integer
+  (if (not (and (integer? n) (>= n 0)))
+    (error "number->base: n must be a non-negative integer"))
+  ; Check that base is an integer in range 2..16
+  (if (not (and (integer? base) (>= base 2) (<= base 16)))
+    (error "number->base: base must be an integer in 2..16"))
+  ; Handle special case n = 0
+  (if (= n 0)
+    "0"
+    (let ()
+      ; Helper to convert number to list of digit values (in reverse order)
+      (define (to-digits n base acc)
+        (if (= n 0)
+          acc
+          (to-digits (quotient n base) base (cons (modulo n base) acc))))
+      ; Convert digit values to characters using the digit string
+      (define (digits-to-string digits)
+        (if (null? digits)
+          ""
+          (string-append
+            (char-at "0123456789abcdef" (car digits))
+            (digits-to-string (cdr digits)))))
+      (digits-to-string (to-digits n base nil)))))
+
+; base->number: parse a string as a non-negative integer in a given base (2-16)
+; (base->number s base) returns the integer value
+; Raises EvalError if base is not in 2..16, string is empty, or contains invalid digits
+(define (base->number s base)
+  ; Check that base is an integer in range 2..16
+  (if (not (and (integer? base) (>= base 2) (<= base 16)))
+    (error "base->number: base must be an integer in 2..16"))
+  ; Check that string is not empty
+  (if (= (string-length s) 0)
+    (error "base->number: string cannot be empty"))
+  ; Helper to parse string left to right, accumulating value
+  (define (parse-digits s base idx acc)
+    (if (= idx (string-length s))
+      acc
+      (let ((c (substring s idx (+ idx 1))))
+        (let ((digit-value (string-index "0123456789abcdef" c)))
+          (if (= digit-value -1)
+            (error (string-append "base->number: invalid character '" c "' for base " (number->string base)))
+            (if (>= digit-value base)
+              (error (string-append "base->number: digit '" c "' is too large for base " (number->string base)))
+              (parse-digits s base (+ idx 1) (+ (* acc base) digit-value))))))))
+  (parse-digits s base 0 0))
+
+; number->binary: (number->binary n) = (number->base n 2)
+(define (number->binary n)
+  (number->base n 2))
+
+; number->hex: (number->hex n) = (number->base n 16)
+(define (number->hex n)
+  (number->base n 16))
+
+; binary->number: (binary->number s) = (base->number s 2)
+(define (binary->number s)
+  (base->number s 2))
+
+; hex->number: (hex->number s) = (base->number s 16)
+(define (hex->number s)
+  (base->number s 16))
+
 ; ===== HIGHER-ORDER FUNCTIONS =====
 
 ; compose: (compose f g) returns a function that does f(g(x))

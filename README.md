@@ -533,6 +533,14 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `inc`, `dec` — increment and decrement by 1
 - `zero?`, `positive?`, `negative?`, `even?`, `odd?` — numeric predicates
 
+**Numeric base conversion:**
+- `number->base` — `(number->base n base)` converts a non-negative integer `n` to its string representation in the given `base` (an integer from 2 to 16 inclusive), using lowercase digits `0-9a-f`
+- `base->number` — `(base->number s base)` parses the string `s` as a non-negative integer written in `base` (2-16) and returns that integer
+- `number->binary` — `(number->binary n)` converts a non-negative integer to its binary (base 2) string representation
+- `number->hex` — `(number->hex n)` converts a non-negative integer to its hexadecimal (base 16) string representation
+- `binary->number` — `(binary->number s)` parses a binary string and returns the integer value
+- `hex->number` — `(hex->number s)` parses a hexadecimal string and returns the integer value
+
 **Higher-order functions:**
 - `compose` — function composition `(compose f g)` → `(lambda (x) (f (g x)))`
 - `const` — returns a constant function
