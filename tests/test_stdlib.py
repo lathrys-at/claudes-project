@@ -167,6 +167,26 @@ class TestOrMacro:
         # counter should be 1 (evaluated exactly once)
         assert result == 1
 
+    def test_or_all_falsy_returns_last_value_nil(self):
+        env = make_global_env()
+        result = eval_source("(or nil)", env)
+        assert result == NIL
+
+    def test_or_all_falsy_returns_last_value_false(self):
+        env = make_global_env()
+        result = eval_source("(or nil false)", env)
+        assert result is False
+
+    def test_or_all_falsy_two_nils(self):
+        env = make_global_env()
+        result = eval_source("(or false nil)", env)
+        assert result == NIL
+
+    def test_or_all_falsy_preserves_last_arg_type(self):
+        env = make_global_env()
+        result = eval_source("(or nil nil nil)", env)
+        assert result == NIL
+
 
 class TestCondMacro:
     """Tests for the cond macro."""
@@ -227,6 +247,51 @@ class TestCondMacro:
                 (+ x 10)))
         """, env)
         assert result == 12
+
+    def test_cond_no_body_clause_single_evaluation_truthy(self):
+        env = make_global_env()
+        result = eval_source("""
+            (define counter 0)
+            (cond
+              ((begin (set! counter (+ counter 1)) true)))
+            counter
+        """, env)
+        # Test should be evaluated exactly once (counter = 1, not 2)
+        assert result == 1
+
+    def test_cond_no_body_clause_returns_truthy_test_value(self):
+        env = make_global_env()
+        result = eval_source("""
+            (cond
+              ((begin 42)))
+        """, env)
+        assert result == 42
+
+    def test_cond_no_body_clause_falsy_falls_through(self):
+        env = make_global_env()
+        result = eval_source("""
+            (cond
+              (false)
+              (true 99))
+        """, env)
+        assert result == 99
+
+    def test_cond_no_body_clause_falsy_falls_through_to_else(self):
+        env = make_global_env()
+        result = eval_source("""
+            (cond
+              (false)
+              (else 77))
+        """, env)
+        assert result == 77
+
+    def test_cond_no_body_clause_returns_nil_nil(self):
+        env = make_global_env()
+        result = eval_source("""
+            (cond
+              (nil))
+        """, env)
+        assert result == NIL
 
 
 class TestLetStar:

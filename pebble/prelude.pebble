@@ -25,9 +25,11 @@
 (define-macro (or . args)
   (if (null? args)
     'false
-    (let ((first-gensym (gensym)))
-      `(let ((,first-gensym ,(car args)))
-         (if ,first-gensym ,first-gensym (or ,@(cdr args)))))))
+    (if (null? (cdr args))
+      (car args)
+      (let ((first-gensym (gensym)))
+        `(let ((,first-gensym ,(car args)))
+           (if ,first-gensym ,first-gensym (or ,@(cdr args))))))))
 
 ; cond: (cond clause...) where each clause is (test body...)
 (define-macro (cond . clauses)
@@ -37,8 +39,10 @@
       (if (and (pair? clause) (symbol? (car clause)) (= (symbol->string (car clause)) "else"))
         `(begin ,@(cdr clause))
         (if (null? (cdr clause))
-          ; No body: return the test value
-          `(if ,(car clause) ,(car clause) (cond ,@(cdr clauses)))
+          ; No body: return the test value (evaluate test exactly once)
+          (let ((test-gensym (gensym)))
+            `(let ((,test-gensym ,(car clause)))
+               (if ,test-gensym ,test-gensym (cond ,@(cdr clauses)))))
           ; Has body: return the last body form
           `(if ,(car clause)
              (begin ,@(cdr clause))
