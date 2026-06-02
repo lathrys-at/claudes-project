@@ -242,6 +242,46 @@ Lambdas and macros support variadic parameters to collect remaining arguments:
   `(if ,test (begin ,@body) nil))
 ```
 
+### Pattern Matching with `match`
+
+Pebble provides the `match` macro for recursive pattern matching over nested data structures. The macro dispatches on the first matching clause and binds all pattern variables in the clause body.
+
+```scheme
+; Basic variable binding
+(match 42
+  (x (+ x 1)))                    ; => 43
+
+; Wildcard (matches anything, no binding)
+(match (list 1 2)
+  (_ "ignored"))                  ; => "ignored"
+
+; Fixed-length list patterns with recursive binding
+(match (list 1 (list 2 3))
+  ((a (b c)) (+ a b c)))          ; => 6, binds a=1, b=2, c=3
+
+; Quoted-symbol patterns for tagged dispatch
+(match (list (quote add) 3 4)
+  (((quote add) x y) (+ x y))     ; => 7
+  (((quote sub) x y) (- x y)))
+
+; Tail patterns with . REST
+(match (list 1 2 3 4)
+  ((first . rest) rest))          ; => (2 3 4), binds first=1, rest=(2 3 4)
+
+; Literal elements in patterns
+(match (list 1 2)
+  ((1 x) (+ x 10)))               ; => 12, matches only if first element is 1
+```
+
+A pattern matches a value recursively as follows:
+- `_` — matches any value, binds nothing
+- Symbol (not `_`) — matches any value, binds the symbol to the value
+- `(quote SYM)` — matches iff the value equals the symbol SYM (used for tagged dispatch)
+- Literal (number, string, boolean) — matches iff the value equals the literal
+- `nil` — matches iff the value is the empty list
+- `(P1 P2 ... Pn)` — fixed list pattern; matches iff the value is a list of exactly length n and each element matches its corresponding pattern Pi recursively
+- `(P1 ... Pn . REST)` — tail pattern; matches iff the value is a list of length ≥ n, first n elements match P1...Pn recursively, and REST (a symbol) is bound to the list of remaining elements
+
 ### Hash Maps
 
 Pebble includes an immutable hash map (dictionary) data type, perfect for associative key-value storage.
@@ -417,6 +457,7 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `cond` — multi-branch conditional with optional else clause
 - `let*` — sequential/nested let bindings
 - `case` — pattern matching on literal datums with multiple clauses and optional else
+- `match` — recursive pattern matching with full pattern grammar (see below)
 - `while` — tail-call optimized loop while a condition is true
 - `dotimes` — tail-call optimized loop iterating over a range of integers
 

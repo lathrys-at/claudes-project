@@ -405,7 +405,8 @@
 
 ; ===== PATTERN MATCHING =====
 
-; match: pattern-matching macro that supports literal, variable, wildcard, and list patterns
+; match: pattern-matching macro that supports literal, variable, wildcard, list, and tail patterns
+; Full recursive pattern matching with proper handling of all pattern types
 (define-macro match
   (lambda (scrutinee . clauses)
     (let ((val-var (gensym)))
@@ -428,52 +429,146 @@
         ; With bindings: (if check (let bindings (begin body)) rest-code)
         (list (quote if) pat-check (list (quote let) pat-bindings (cons (quote begin) body)) rest-code)))))
 
+; Detect if a pattern is a tail pattern: (P1 ... Pn . REST) where REST is a symbol
+; Returns (list fixed-patterns rest-var) or false if not a tail pattern
+(define (match-detect-tail-pattern pat)
+  (if (or (not (pair? pat)) (null? pat))
+    false
+    (let ((len (length pat)))
+      (if (and (> len 1) (symbol? (nth pat (- len 2))) (= (symbol->string (nth pat (- len 2))) "."))
+        (let ((fixed-pats (take pat (- len 2)))
+              (rest-var (nth pat (- len 1))))
+          (if (symbol? rest-var)
+            (list fixed-pats rest-var)
+            false))
+        false))))
+
 ; Generate a check expression for a pattern
+; A pattern matches a value as follows (recursively):
+; - _ : matches any value
+; - (quote SYM) : matches iff value = symbol SYM
+; - literal (number/string/bool) : matches iff value = literal
+; - symbol : matches any value (binding)
+; - nil : matches iff value is empty list
+; - (P1 P2 ... Pn) : matches iff value is list of exactly length n AND each element matches recursively
+; - (P1 ... Pn . REST) : matches iff value is list of length >= n AND first n elements match recursively
 (define (match-gen-check pat val-var)
   (cond
+    ; Wildcard: always matches
     ((and (symbol? pat) (= (symbol->string pat) "_"))
      (quote true))
+    ; nil pattern: check null?
     ((null? pat)
      (list (quote null?) val-var))
+    ; Literal patterns (number, string, boolean): check equality
     ((or (number? pat) (string? pat) (boolean? pat))
      (list (quote =) val-var (list (quote quote) pat)))
+    ; Symbol variable (not wildcard, not quoted-form): always matches (binding occurs in gen-bindings)
     ((symbol? pat)
      (quote true))
+    ; List/pair pattern: could be quoted-symbol, fixed-list, or tail pattern
     ((pair? pat)
-     (let ((len (length pat)))
-       (if (and (> len 1) (symbol? (nth pat (- len 2))) (= (symbol->string (nth pat (- len 2))) "."))
-         ; Tail pattern - check minimum length and fixed elements
-         (let ((fixed-count (length (take pat (- len 2)))))
-           (list (quote >=) (list (quote length) val-var) fixed-count))
-         ; Fixed pattern - check exact length
-         (list (quote =) (list (quote length) val-var) len))))
+     (let ((tail-info (match-detect-tail-pattern pat)))
+       (if tail-info
+         ; Tail pattern: (P1 ... Pn . REST)
+         ; Check: value is list AND length >= n AND all fixed sub-patterns match
+         (let ((fixed-pats (car tail-info))
+               (fixed-count (length (car tail-info))))
+           (match-gen-check-list-tail pat val-var fixed-pats fixed-count))
+         ; Not a tail pattern; could be quoted-symbol or fixed-list
+         (if (and (= (length pat) 2) (symbol? (car pat)) (= (symbol->string (car pat)) "quote") (symbol? (cadr pat)))
+           ; Quoted-symbol pattern: (quote SYM)
+           ; Check: value = the symbol SYM
+           (list (quote =) val-var (list (quote quote) (cadr pat)))
+           ; Fixed-list pattern: (P1 P2 ... Pn)
+           ; Check: value is list AND length = n AND all sub-patterns match
+           (match-gen-check-list-fixed pat val-var)))))
     (else (quote false))))
 
+; Check for a fixed list pattern: value must be list of exactly length n,
+; and all sub-patterns must recursively match their values
+(define (match-gen-check-list-fixed pat val-var)
+  (let ((len (length pat))
+        (checks (match-gen-list-checks pat val-var 0)))
+    (match-conjoin
+      (list (list (quote list?) val-var)
+            (list (quote =) (list (quote length) val-var) len))
+      checks)))
+
+; Check for a tail pattern: value must be list of at least length n,
+; and all fixed sub-patterns must recursively match
+(define (match-gen-check-list-tail pat val-var fixed-pats fixed-count)
+  (let ((checks (match-gen-list-checks fixed-pats val-var 0)))
+    (match-conjoin
+      (list (list (quote list?) val-var)
+            (list (quote >=) (list (quote length) val-var) fixed-count))
+      checks)))
+
+; Generate recursive checks for each element of a list pattern
+(define (match-gen-list-checks pats val-var index)
+  (if (null? pats)
+    nil
+    (let ((pat (car pats))
+          (elem-check (match-gen-elem-check val-var index)))
+      (cons
+        ; Check: (match-elem-pattern pat (nth val-var index))
+        (match-gen-check pat elem-check)
+        (match-gen-list-checks (cdr pats) val-var (+ index 1))))))
+
+; Generate code to access the i-th element: (nth val-var i)
+(define (match-gen-elem-check val-var index)
+  (list (quote nth) val-var index))
+
+; Build a conjunction of checks (and-expression)
+; If no checks, returns true; if one check, returns it; otherwise (and check1 check2 ...)
+(define (match-conjoin base-checks elem-checks)
+  (let ((all-checks (append base-checks elem-checks)))
+    (cond
+      ((null? all-checks) (quote true))
+      ((null? (cdr all-checks)) (car all-checks))
+      (else (cons (quote and) all-checks)))))
+
 ; Generate bindings for a pattern
+; Returns list of (var value-expr) pairs to bind all pattern variables
 (define (match-gen-bindings pat val-var)
   (cond
+    ; Wildcard: no binding
+    ((and (symbol? pat) (= (symbol->string pat) "_"))
+     nil)
+    ; Symbol (not wildcard): bind it to the value
     ((symbol? pat)
-     (if (= (symbol->string pat) "_")
-       nil
-       (list (list pat val-var))))
+     (list (list pat val-var)))
+    ; nil: no binding
+    ((null? pat)
+     nil)
+    ; Literals (number, string, bool): no binding
+    ((or (number? pat) (string? pat) (boolean? pat))
+     nil)
+    ; Quoted-symbol pattern (quote SYM): no binding
+    ((and (pair? pat) (= (length pat) 2) (symbol? (car pat)) (= (symbol->string (car pat)) "quote"))
+     nil)
+    ; List pattern (could be fixed or tail)
     ((pair? pat)
-     (let ((len (length pat)))
-       (if (and (> len 1) (symbol? (nth pat (- len 2))) (= (symbol->string (nth pat (- len 2))) "."))
-         ; Tail pattern - bind rest variable
-         (let ((rest-var (nth pat (- len 1)))
-               (fixed-count (length (take pat (- len 2)))))
-           (append (match-gen-list-bindings (take pat (- len 2)) val-var 0)
-                   (list (list rest-var (list (quote drop) val-var fixed-count)))))
-         ; Fixed pattern - bind element variables
+     (let ((tail-info (match-detect-tail-pattern pat)))
+       (if tail-info
+         ; Tail pattern: collect bindings from fixed patterns + bind rest variable
+         (let ((fixed-pats (car tail-info))
+               (rest-var (cadr tail-info))
+               (fixed-count (length (car tail-info))))
+           (append
+             (match-gen-list-bindings fixed-pats val-var 0)
+             (list (list rest-var (list (quote drop) val-var fixed-count)))))
+         ; Fixed list pattern: collect bindings from all element patterns recursively
          (match-gen-list-bindings pat val-var 0))))
     (else nil)))
 
-; Generate bindings for list pattern variables
+; Generate bindings for list pattern elements recursively
+; Each element pattern is matched against (nth val-var index)
 (define (match-gen-list-bindings pats val-var index)
   (if (null? pats)
     nil
-    (let ((pat (car pats)))
-      (if (and (symbol? pat) (not (= (symbol->string pat) "_")))
-        (cons (list pat (list (quote nth) val-var index))
-              (match-gen-list-bindings (cdr pats) val-var (+ index 1)))
+    (let ((pat (car pats))
+          (elem-access (list (quote nth) val-var index)))
+      (append
+        (match-gen-bindings pat elem-access)
         (match-gen-list-bindings (cdr pats) val-var (+ index 1))))))
