@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install project and test dependencies
+        run: |
+          pip install -e .
+          pip install pytest
+
+      - name: Run test suite
+        run: python -m pytest -q
+
+      - name: Run CLI smoke check
+        run: |
+          output=$(pebble -c "(+ 1 2)")
+          if [ "$output" = "3" ]; then
+            echo "CLI smoke check passed: $(pebble -c '(+ 1 2)')"
+          else
+            echo "CLI smoke check failed: expected 3, got $output"
+            exit 1
+          fi
