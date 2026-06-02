@@ -90,6 +90,28 @@ Define macros with `define-macro` in two styles:
 Macros expand at call time by applying the transformer procedure to unevaluated arguments.
 Use `gensym` to generate fresh symbols and avoid variable capture.
 
+### Error Handling
+
+Pebble supports try/catch error handling through the `try` special form:
+
+```scheme
+; Basic error catching
+(try (error "something went wrong") (catch e e))
+; => "something went wrong"
+
+; Catch runtime errors like division by zero
+(try (/ 1 0) (catch err (string-append "Error: " err)))
+; => "Error: division by zero"
+
+; Handle multiple handler forms
+(try (error "oops") (catch e 
+  (displayln "Error occurred")
+  (string-append "caught: " e)))
+; => "caught: oops"
+```
+
+The `try` form evaluates a protected expression. If evaluation succeeds, the `try` form returns the value of the expression. If any Pebble evaluation error occurs (from the `error` builtin, division by zero, car on an empty list, undefined symbols, arity mismatches, etc.), the `catch` handler is evaluated instead. The catch clause binds the error's message (a string) to a variable name scoped to the handler only. Multiple forms in the handler are evaluated in order, and the value of the last form is returned. If the handler is empty, `nil` is returned.
+
 ### Variadic Parameters
 
 Lambdas and macros support variadic parameters to collect remaining arguments:

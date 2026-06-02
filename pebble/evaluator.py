@@ -457,6 +457,52 @@ def _seval_internal(expr, env):
                 # The last form is in tail position
                 return _TailCall(body[-1], env)
 
+            elif head == "try":
+                # (try EXPR (catch NAME HANDLER...))
+                if len(expr) != 3:
+                    raise EvalError(f"try requires exactly 2 arguments (expr and catch clause), got {len(expr) - 1}")
+
+                protected_expr = expr[1]
+                catch_clause = expr[2]
+
+                # Validate catch clause structure
+                if not isinstance(catch_clause, PebbleList):
+                    raise EvalError(f"catch clause must be a list, got {type(catch_clause).__name__}")
+                if len(catch_clause) < 1:
+                    raise EvalError("catch clause cannot be empty")
+                if not isinstance(catch_clause[0], Symbol) or catch_clause[0] != "catch":
+                    raise EvalError("catch clause must start with 'catch'")
+                if len(catch_clause) < 2:
+                    raise EvalError("catch clause must have a variable name")
+
+                error_var = catch_clause[1]
+                if not isinstance(error_var, Symbol):
+                    raise EvalError(f"catch variable must be a symbol, got {type(error_var).__name__}")
+
+                handler_forms = list(catch_clause[2:])
+
+                # Try to evaluate the protected expression
+                try:
+                    # Evaluate the protected expression and trampoline the result
+                    protected_result = _seval_internal(protected_expr, env)
+                    return _trampoline(protected_result)
+                except EvalError as e:
+                    # Create a new scope for the handler
+                    handler_env = Environment(parent=env)
+                    # Bind the error message to the error variable
+                    handler_env.define(error_var, str(e))
+
+                    # Evaluate handler forms in order, return value of last one
+                    if len(handler_forms) == 0:
+                        return NIL
+
+                    # Evaluate all but the last form
+                    for form in handler_forms[:-1]:
+                        _trampoline(_seval_internal(form, handler_env))
+
+                    # Last form is in tail position - return it as _TailCall for the outer trampoline
+                    return _TailCall(handler_forms[-1], handler_env)
+
             # If we reach here, head is a Symbol but no special form matched
             # Check for macro expansion
             maybe_macro = env.try_lookup(head)
