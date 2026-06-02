@@ -9,12 +9,26 @@ a set of primitive builtins, and a REPL.
 ## Status
 
 - [x] Reader (tokenizer + parser)
-- [ ] Evaluator + special forms
-- [ ] Builtins
-- [ ] REPL
+- [x] Evaluator + special forms
+- [x] Builtins (starter set)
+- [x] REPL
 - [ ] Macros & quasiquote
 - [ ] Tail-call optimization
 - [ ] In-language standard library
+
+## Usage
+
+Start the interactive REPL:
+
+```
+python -m pebble
+```
+
+Run a script file:
+
+```
+python -m pebble path/to/script.pebble
+```
 
 ## Running the tests
 
