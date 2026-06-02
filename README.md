@@ -562,6 +562,8 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `last` — last element of a list
 - `nth` — zero-indexed element access
 - `range` — lazy or eager integer ranges; supports both tail-call optimization and large ranges
+- `iterate` — `(iterate f x n)` returns a list of `n` elements by repeatedly applying function `f`: `x`, `(f x)`, `(f (f x))`, ..., `(f^(n-1) x)`. For `n = 0`, returns the empty list. Stack-safe for large `n`. Example: `(iterate (lambda (v) (* v 2)) 1 5)` → `(1 2 4 8 16)`
+- `range-step` — `(range-step start stop step)` returns an arithmetic sequence starting at `start` with a common difference of `step`. If `step` is positive, includes values while `value < stop`; if negative, includes values while `value > stop`. The endpoint `stop` is exclusive. `step` must be nonzero (raises an error otherwise). Stack-safe for large ranges. Examples: `(range-step 0 10 2)` → `(0 2 4 6 8)`, `(range-step 10 0 -2)` → `(10 8 6 4 2)`
 - `take`, `drop` — prefix/suffix operations
 - `take-while` — longest prefix of list whose elements satisfy a predicate
 - `drop-while` — list with leading elements satisfying predicate removed

@@ -671,6 +671,32 @@
     nil
     (cons x (repeat x (- n 1)))))
 
+; iterate: (iterate f x n) returns a list of n elements: x, (f x), (f (f x)), ..., (f^(n-1) x)
+; Stack-safe implementation using tail recursion with accumulator
+(define (iterate f x n)
+  (define (iterate-helper f current count acc)
+    (if (= count 0)
+      (reverse acc)
+      (iterate-helper f (f current) (- count 1) (cons current acc))))
+  (iterate-helper f x n nil))
+
+; range-step: (range-step start stop step) returns an arithmetic sequence
+; If step is positive, include values while value < stop
+; If step is negative, include values while value > stop
+; step must be nonzero (raises EvalError if step is 0)
+; Stack-safe implementation using tail recursion with accumulator
+(define (range-step start stop step)
+  (if (= step 0)
+    (error "range-step: step must be nonzero")
+    (let ()
+      (define (range-step-helper current acc)
+        (if (if (> step 0)
+              (>= current stop)
+              (<= current stop))
+          (reverse acc)
+          (range-step-helper (+ current step) (cons current acc))))
+      (range-step-helper start nil))))
+
 ; ===== STRING MANIPULATION FUNCTIONS =====
 
 ; string-split: splits string s into a list of substrings separated by sep
