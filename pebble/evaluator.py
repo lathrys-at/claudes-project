@@ -270,120 +270,12 @@ def make_global_env() -> Environment:
     Returns:
         An Environment with starter builtins defined.
     """
+    # Lazy import to avoid circular dependency
+    from pebble.builtins import builtin_table
+
     env = Environment()
-
-    # Arithmetic
-    def builtin_add(*args):
-        return sum(args)
-
-    def builtin_sub(*args):
-        if len(args) == 0:
-            return 0
-        if len(args) == 1:
-            return -args[0]
-        result = args[0]
-        for arg in args[1:]:
-            result -= arg
-        return result
-
-    def builtin_mul(*args):
-        result = 1
-        for arg in args:
-            result *= arg
-        return result
-
-    def builtin_div(*args):
-        if len(args) == 0:
-            raise EvalError("/ requires at least 1 argument")
-        result = args[0]
-        for arg in args[1:]:
-            if arg == 0:
-                raise EvalError("division by zero")
-            result = result / arg
-        return result
-
-    # Comparison
-    def builtin_eq(*args):
-        if len(args) == 0:
-            return True
-        first = args[0]
-        for arg in args[1:]:
-            if arg != first:
-                return False
-        return True
-
-    def builtin_lt(*args):
-        for i in range(len(args) - 1):
-            if not (args[i] < args[i + 1]):
-                return False
-        return True
-
-    def builtin_gt(*args):
-        for i in range(len(args) - 1):
-            if not (args[i] > args[i + 1]):
-                return False
-        return True
-
-    def builtin_le(*args):
-        for i in range(len(args) - 1):
-            if not (args[i] <= args[i + 1]):
-                return False
-        return True
-
-    def builtin_ge(*args):
-        for i in range(len(args) - 1):
-            if not (args[i] >= args[i + 1]):
-                return False
-        return True
-
-    # List operations
-    def builtin_list(*args):
-        return PebbleList(args)
-
-    def builtin_cons(x, lst):
-        if not isinstance(lst, PebbleList):
-            raise EvalError(f"cons: second argument must be a list, got {type(lst).__name__}")
-        return PebbleList([x] + list(lst))
-
-    def builtin_car(lst):
-        if not isinstance(lst, PebbleList):
-            raise EvalError(f"car: argument must be a list, got {type(lst).__name__}")
-        if len(lst) == 0:
-            raise EvalError("car: empty list has no car")
-        return lst[0]
-
-    def builtin_cdr(lst):
-        if not isinstance(lst, PebbleList):
-            raise EvalError(f"cdr: argument must be a list, got {type(lst).__name__}")
-        if len(lst) == 0:
-            raise EvalError("cdr: empty list has no cdr")
-        return PebbleList(lst[1:])
-
-    def builtin_null(lst):
-        if isinstance(lst, PebbleList) and len(lst) == 0:
-            return True
-        return False
-
-    def builtin_print(*args):
-        print(" ".join(str(arg) for arg in args))
-        return NIL
-
-    # Register all builtins
-    env.define(Symbol("+"), builtin_add)
-    env.define(Symbol("-"), builtin_sub)
-    env.define(Symbol("*"), builtin_mul)
-    env.define(Symbol("/"), builtin_div)
-    env.define(Symbol("="), builtin_eq)
-    env.define(Symbol("<"), builtin_lt)
-    env.define(Symbol(">"), builtin_gt)
-    env.define(Symbol("<="), builtin_le)
-    env.define(Symbol(">="), builtin_ge)
-    env.define(Symbol("list"), builtin_list)
-    env.define(Symbol("cons"), builtin_cons)
-    env.define(Symbol("car"), builtin_car)
-    env.define(Symbol("cdr"), builtin_cdr)
-    env.define(Symbol("null?"), builtin_null)
-    env.define(Symbol("print"), builtin_print)
+    for name, fn in builtin_table(apply_proc).items():
+        env.define(Symbol(name), fn)
 
     return env
 

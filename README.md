@@ -10,7 +10,7 @@ a set of primitive builtins, and a REPL.
 
 - [x] Reader (tokenizer + parser)
 - [x] Evaluator + special forms
-- [x] Builtins (starter set)
+- [x] Builtins (rich primitive library: arithmetic, predicates, list & string ops, higher-order functions)
 - [x] REPL
 - [ ] Macros & quasiquote
 - [ ] Tail-call optimization
