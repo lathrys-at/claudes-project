@@ -544,6 +544,18 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `vector-copy` — `(vector-copy v)` returns an independent copy of vector `v` with the same elements. Mutating the copy does not affect the original, and vice versa.
 - `vector-fill!` — `(vector-fill! v x)` sets every element of `v` to `x` in place, mutating the vector. The change is visible through all references to `v`, and the function returns `nil`.
 
+**Lazy evaluation (promises):**
+- `delay` — `(delay EXPR)` is a macro that creates a promise representing the deferred computation of `EXPR`. The expression is NOT evaluated immediately; it is captured in the current lexical environment and only evaluated when the promise is forced.
+- `force` — `(force P)` forces a promise P. If P is a promise, the first force evaluates the deferred expression and caches the result; subsequent forces return the cached value without re-evaluating. If P is not a promise, it is returned unchanged.
+- `promise?` — `(promise? x)` returns true if x is a promise created by `delay`, and false for all other values. Example:
+  ```lisp
+  (define p (delay (+ 1 2)))
+  (promise? p)              ; true
+  (force p)                 ; 3
+  (force p)                 ; 3 (cached, expression not re-evaluated)
+  (promise? 5)              ; false
+  ```
+
 **String functions:**
 - `string-join` — join a list of strings with separator
 - `string-split` — split string by separator into a list of substrings

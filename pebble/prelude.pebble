@@ -694,3 +694,46 @@
                (and (pair? x) (symbol? (car x)) (= (car x) (quote ,type-tag)) (= (length x) ,(+ field-count 1))))
              ,@accessor-defs
              (quote ,name)))))))
+
+; ===== LAZY EVALUATION (PROMISES) =====
+
+; Create a unique tag for all promises (so promise? can recognize them)
+(define promise-tag (gensym "promise"))
+
+; delay: (delay EXPR) - macro that defers evaluation of EXPR
+; Returns a promise (a mutable vector) that captures EXPR as a zero-argument lambda
+; The vector structure: #[promise-tag false thunk-or-value]
+; - Element 0: promise-tag (unique symbol)
+; - Element 1: forced? flag (false initially, true after first force)
+; - Element 2: thunk (initially) or cached-value (after first force)
+(define-macro (delay expr)
+  `(let ((promise-vec (make-vector 3)))
+     (vector-set! promise-vec 0 promise-tag)
+     (vector-set! promise-vec 1 false)
+     (vector-set! promise-vec 2 (lambda () ,expr))
+     promise-vec))
+
+; force: (force P) - force a promise or return non-promises unchanged
+; If P is a promise:
+;   - If it has never been forced: evaluate the thunk, cache the result, mark as forced
+;   - If already forced: return the cached value (thunk is not re-evaluated)
+; If P is not a promise: return P unchanged
+(define (force p)
+  (if (and (vector? p) (= (vector-length p) 3) (= (vector-ref p 0) promise-tag))
+    ; p is a promise
+    (if (vector-ref p 1)
+      ; Already forced: return cached value
+      (vector-ref p 2)
+      ; Not yet forced: evaluate thunk, cache result, mark as forced
+      (let ((result ((vector-ref p 2))))
+        (vector-set! p 2 result)
+        (vector-set! p 1 true)
+        result))
+    ; p is not a promise, return as-is
+    p))
+
+; promise?: (promise? x) - test if x is a promise created by delay
+; Returns true iff x is a promise (vector with the unique promise-tag), false otherwise
+; Rejects ordinary vectors and lists that might resemble the internal structure
+(define (promise? x)
+  (and (vector? x) (= (vector-length x) 3) (= (vector-ref x 0) promise-tag)))
