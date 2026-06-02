@@ -484,6 +484,7 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `match` — recursive pattern matching with full pattern grammar (see below)
 - `while` — tail-call optimized loop while a condition is true
 - `dotimes` — tail-call optimized loop iterating over a range of integers
+- `define-record` — defines user-defined record/struct types with constructor, predicate, and accessors
 
 **List accessors:**
 - `caar`, `cadr`, `caddr`, `cddr` — classic nested car/cdr combinations
@@ -522,5 +523,15 @@ Pebble includes a standard library written in the Pebble language itself, automa
 
 **I/O:**
 - `displayln` — display with newline
+
+**Records (user-defined types):**
+- `define-record` — `(define-record NAME (FIELD1 FIELD2 ...))` defines a new record type with a constructor `make-NAME`, predicate `NAME?`, and field accessors `NAME-FIELD1`, `NAME-FIELD2`, etc. Records are unforgeable: only values created by the specific constructor satisfy the predicate. Example:
+  ```lisp
+  (define-record point (x y))
+  (define p (make-point 3 4))
+  (point? p)           ; true
+  (point-x p)          ; 3
+  (= p (make-point 3 4)) ; true (records with equal fields are equal)
+  ```
 
 The prelude is loaded by default and cached, so repeated calls to `make_global_env()` do not re-parse the file. Pass `load_prelude=False` to `make_global_env()` to get an environment with only primitive builtins.

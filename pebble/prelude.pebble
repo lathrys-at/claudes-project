@@ -623,3 +623,37 @@
       (append
         (match-gen-bindings pat elem-access)
         (match-gen-list-bindings (cdr pats) val-var (+ index 1))))))
+
+; ===== RECORD TYPE DEFINITIONS =====
+
+; define-record: (define-record NAME (FIELD1 FIELD2 ...))
+; Expands to multiple definitions:
+; - (make-NAME v1 v2 ...) - constructor
+; - (NAME? x) - type predicate
+; - (NAME-FIELD r) - accessor for each field
+; The implementation uses a unique gensym as a type tag to make records unforgeable.
+(define-macro (define-record name fields)
+  (let ((type-tag (gensym "record-type")))
+    (let ((make-name (string->symbol (string-append "make-" (symbol->string name))))
+          (predicate-name (string->symbol (string-append (symbol->string name) "?")))
+          (field-count (length fields)))
+      (let ((field-indices (range (length fields))))
+        (let ((accessor-defs
+                (map2
+                  (lambda (field idx)
+                    (let ((accessor-name (string->symbol (string-append (symbol->string name) "-" (symbol->string field)))))
+                      `(define (,accessor-name r)
+                         (if (and (pair? r) (symbol? (car r)) (= (car r) (quote ,type-tag)))
+                           (nth r ,(+ idx 1))
+                           (error (string-append ,(symbol->string accessor-name) " called on non-" ,(symbol->string name) " value"))))))
+                  fields
+                  field-indices)))
+          `(begin
+             (define (,make-name . args)
+               (if (= (length args) ,field-count)
+                 (cons (quote ,type-tag) args)
+                 (error (string-append "make-" ,(symbol->string name) " expects " ,(number->string field-count) " arguments"))))
+             (define (,predicate-name x)
+               (and (pair? x) (symbol? (car x)) (= (car x) (quote ,type-tag)) (= (length x) ,(+ field-count 1))))
+             ,@accessor-defs
+             (quote ,name)))))))
