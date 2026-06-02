@@ -258,3 +258,155 @@ class TestDefineRecord:
         """
         result = eval_source(code, env)
         assert result is True
+
+
+class TestDefineRecordMutators:
+    """Test the new mutator functionality (set-NAME-FIELD!) for records."""
+
+    def test_mutator_changes_field_in_place(self):
+        """Test that set-NAME-FIELD! changes a field and returns nil."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define p (make-point 3 4))
+        (define result (set-point-x! p 99))
+        (list result (point-x p) (point-y p))
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList((PebbleList(()), 99, 4))
+
+    def test_mutator_mutation_visible_through_alias(self):
+        """Test that mutation through one name is visible through another name (reference semantics)."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define p (make-point 3 4))
+        (define q p)
+        (set-point-x! p 99)
+        (list (point-x p) (point-x q))
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList((99, 99))
+
+    def test_mutator_on_wrong_record_type_raises_error(self):
+        """Test that mutator on wrong record type raises EvalError."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define-record circle (radius))
+        (define c (make-circle 10))
+        (set-point-x! c 5)
+        """
+        with pytest.raises(Exception):  # EvalError
+            eval_source(code, env)
+
+    def test_mutator_on_non_record_raises_error(self):
+        """Test that mutator on non-record raises EvalError."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (set-point-x! 42 5)
+        """
+        with pytest.raises(Exception):  # EvalError
+            eval_source(code, env)
+
+    def test_mutator_on_list_raises_error(self):
+        """Test that mutator on a list (even if shaped like a record) raises EvalError."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (set-point-x! (list (quote point) 3 4) 5)
+        """
+        with pytest.raises(Exception):  # EvalError
+            eval_source(code, env)
+
+    def test_mutator_returns_nil(self):
+        """Test that mutator returns nil (empty list in Pebble)."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define p (make-point 3 4))
+        (set-point-x! p 99)
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList(())
+
+    def test_equality_reflects_post_mutation_contents(self):
+        """Test that equality of records reflects their current contents after mutation."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define p1 (make-point 3 4))
+        (define p2 (make-point 3 4))
+        (define eq-before (= p1 p2))
+        (set-point-x! p1 99)
+        (define eq-after (= p1 p2))
+        (list eq-before eq-after)
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList((True, False))
+
+    def test_mutation_can_make_unequal_equal(self):
+        """Test that mutation can change unequal records to equal."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define p1 (make-point 3 4))
+        (define p2 (make-point 99 4))
+        (define eq-before (= p1 p2))
+        (set-point-x! p2 3)
+        (define eq-after (= p1 p2))
+        (list eq-before eq-after)
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList((False, True))
+
+    def test_mutate_second_field(self):
+        """Test mutating the second field."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define p (make-point 3 4))
+        (set-point-y! p 100)
+        (list (point-x p) (point-y p))
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList((3, 100))
+
+    def test_mutate_multiple_fields_in_sequence(self):
+        """Test mutating multiple fields in sequence."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define p (make-point 3 4))
+        (set-point-x! p 10)
+        (set-point-y! p 20)
+        (list (point-x p) (point-y p))
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList((10, 20))
+
+    def test_mutate_three_field_record(self):
+        """Test mutating a record with three fields."""
+        env = make_global_env()
+        code = """
+        (define-record rgb (red green blue))
+        (define c (make-rgb 255 128 64))
+        (set-rgb-green! c 255)
+        (list (rgb-red c) (rgb-green c) (rgb-blue c))
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList((255, 255, 64))
+
+    def test_unforgeable_predicate_still_holds_with_vector_representation(self):
+        """Test that unforgeable predicate still holds with the new vector-based representation."""
+        env = make_global_env()
+        code = """
+        (define-record point (x y))
+        (define p (make-point 3 4))
+        (define v (vector (quote point) 3 4))
+        (define l (list (quote point) 3 4))
+        (list (point? p) (point? v) (point? l))
+        """
+        result = eval_source(code, env)
+        assert result == PebbleList((True, False, False))

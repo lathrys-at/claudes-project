@@ -667,8 +667,10 @@
 ; Expands to multiple definitions:
 ; - (make-NAME v1 v2 ...) - constructor
 ; - (NAME? x) - type predicate
-; - (NAME-FIELD r) - accessor for each field
-; The implementation uses a unique gensym as a type tag to make records unforgeable.
+; - (NAME-FIELD r) - accessor for each field (read-only)
+; - (set-NAME-FIELD! r v) - mutator for each field (mutable, returns nil)
+; The implementation uses a mutable vector with a unique gensym as a type tag to make records unforgeable.
+; Records are represented as: #[type-tag field1 field2 ...]
 (define-macro (define-record name fields)
   (let ((type-tag (gensym "record-type")))
     (let ((make-name (string->symbol (string-append "make-" (symbol->string name))))
@@ -680,20 +682,41 @@
                   (lambda (field idx)
                     (let ((accessor-name (string->symbol (string-append (symbol->string name) "-" (symbol->string field)))))
                       `(define (,accessor-name r)
-                         (if (and (pair? r) (symbol? (car r)) (= (car r) (quote ,type-tag)))
-                           (nth r ,(+ idx 1))
+                         (if (and (vector? r) (> (vector-length r) 0) (symbol? (vector-ref r 0)) (= (vector-ref r 0) (quote ,type-tag)))
+                           (vector-ref r ,(+ idx 1))
                            (error (string-append ,(symbol->string accessor-name) " called on non-" ,(symbol->string name) " value"))))))
                   fields
                   field-indices)))
-          `(begin
-             (define (,make-name . args)
-               (if (= (length args) ,field-count)
-                 (cons (quote ,type-tag) args)
-                 (error (string-append "make-" ,(symbol->string name) " expects " ,(number->string field-count) " arguments"))))
-             (define (,predicate-name x)
-               (and (pair? x) (symbol? (car x)) (= (car x) (quote ,type-tag)) (= (length x) ,(+ field-count 1))))
-             ,@accessor-defs
-             (quote ,name)))))))
+          (let ((mutator-defs
+                  (map2
+                    (lambda (field idx)
+                      (let ((mutator-name (string->symbol (string-append "set-" (symbol->string name) "-" (symbol->string field) "!"))))
+                        `(define (,mutator-name r v)
+                           (if (and (vector? r) (> (vector-length r) 0) (symbol? (vector-ref r 0)) (= (vector-ref r 0) (quote ,type-tag)))
+                             (begin (vector-set! r ,(+ idx 1) v) nil)
+                             (error (string-append ,(symbol->string mutator-name) " called on non-" ,(symbol->string name) " value"))))))
+                    fields
+                    field-indices)))
+            `(begin
+               (define (,make-name . args)
+                 (if (= (length args) ,field-count)
+                   (let ((vec (make-vector ,(+ field-count 1))))
+                     (vector-set! vec 0 (quote ,type-tag))
+                     ,@(let ()
+                         (define (make-set-stmts remaining-args idx)
+                           (if (null? remaining-args)
+                             nil
+                             (cons
+                               `(vector-set! vec ,idx (nth args ,(- idx 1)))
+                               (make-set-stmts (cdr remaining-args) (+ idx 1)))))
+                         (make-set-stmts fields 1))
+                     vec)
+                   (error (string-append "make-" ,(symbol->string name) " expects " ,(number->string field-count) " arguments"))))
+               (define (,predicate-name x)
+                 (and (vector? x) (= (vector-length x) ,(+ field-count 1)) (symbol? (vector-ref x 0)) (= (vector-ref x 0) (quote ,type-tag))))
+               ,@accessor-defs
+               ,@mutator-defs
+               (quote ,name))))))))
 
 ; ===== LAZY EVALUATION (PROMISES) =====
 
