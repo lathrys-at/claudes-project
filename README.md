@@ -93,6 +93,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/primes.pebble` — Infinite stream of primes via a lazy Sieve of Eratosthenes
 - `examples/brainfuck.pebble` — Brainfuck interpreter using a mutable-vector memory tape
 - `examples/heap.pebble` — Binary min-heap (priority queue) backed by a mutable vector with heapsort
+- `examples/tictactoe.pebble` — Tic-tac-toe win detection checking rows, columns, and diagonals
 
 Run any example directly:
 

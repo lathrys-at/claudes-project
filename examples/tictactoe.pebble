@@ -1,0 +1,27 @@
+;;; Tic-Tac-Toe Win Detection
+;;; A board is a list of 9 elements (indices 0..8, row-major).
+;;; Each cell is 'x', 'o', or '- (empty).
+;;; The winner function returns 'x if X wins, 'o if O wins, or nil if no winner.
+
+(define (line-winner board i1 i2 i3)
+  (let ((c1 (nth board i1))
+        (c2 (nth board i2))
+        (c3 (nth board i3)))
+    (if (and (= c1 c2) (= c2 c3) (not (= c1 '-)))
+      c1
+      nil)))
+
+(define (winner board)
+  (cond
+    ((line-winner board 0 1 2))
+    ((line-winner board 3 4 5))
+    ((line-winner board 6 7 8))
+    ((line-winner board 0 3 6))
+    ((line-winner board 1 4 7))
+    ((line-winner board 2 5 8))
+    ((line-winner board 0 4 8))
+    ((line-winner board 2 4 6))
+    (else nil)))
+
+(displayln (winner (list 'x 'x 'x '- '- '- '- '- '-)))
+(displayln (winner (list 'x 'o 'x 'o 'x 'o 'o 'x 'o)))
