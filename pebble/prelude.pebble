@@ -619,6 +619,50 @@
     (error "minimum: empty list")
     (reduce min lst)))
 
+; ===== STATISTICS FUNCTIONS =====
+
+; mean: returns the arithmetic mean of a non-empty list of numbers
+; (mean lst) = (sum lst) / (length lst)
+; Raises EvalError on the empty list
+(define (mean lst)
+  (if (null? lst)
+    (error "mean: empty list")
+    (/ (sum lst) (length lst))))
+
+; median: returns the median of a non-empty list of numbers
+; Sorts the list; if odd length, returns the middle element;
+; if even length, returns the average of the two middle elements
+; Raises EvalError on the empty list
+(define (median lst)
+  (if (null? lst)
+    (error "median: empty list")
+    (let ((sorted (sort lst)))
+      (let ((len (length sorted)))
+        (if (= (modulo len 2) 1)
+          ; Odd length: return middle element
+          (nth sorted (quotient len 2))
+          ; Even length: return average of two middle elements
+          (let ((mid-idx (quotient len 2)))
+            (/ (+ (nth sorted (- mid-idx 1)) (nth sorted mid-idx)) 2)))))))
+
+; variance: returns the population variance of a non-empty list of numbers
+; variance = (sum of (xi - mean)^2) / length
+; Raises EvalError on the empty list
+(define (variance lst)
+  (if (null? lst)
+    (error "variance: empty list")
+    (let ((m (mean lst)))
+      (let ((squared-diffs (map (lambda (x) (* (- x m) (- x m))) lst)))
+        (/ (sum squared-diffs) (length lst))))))
+
+; stddev: returns the population standard deviation of a non-empty list of numbers
+; stddev = sqrt(variance)
+; Raises EvalError on the empty list
+(define (stddev lst)
+  (if (null? lst)
+    (error "stddev: empty list")
+    (sqrt (variance lst))))
+
 ; ===== LIST GENERATION FUNCTIONS =====
 
 ; repeat: returns a list containing x repeated n times

@@ -580,6 +580,10 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `sort` — returns a new list sorted in ascending order
 - `sort-with` — sorts using a custom binary predicate
 - `maximum`, `minimum` — largest/smallest element of a non-empty list
+- `mean` — `(mean lst)` returns the arithmetic mean (average) of a non-empty list of numbers: `(sum lst) / (length lst)`. Raises an error on the empty list.
+- `median` — `(median lst)` returns the median of a non-empty list of numbers. Sorts the list internally; if the length is odd, returns the middle element; if even, returns the average of the two middle elements. Does not mutate the input. Raises an error on the empty list.
+- `variance` — `(variance lst)` returns the population variance of a non-empty list of numbers: the mean of the squared deviations from the mean `(sum of (xi - mean)^2) / length`. Raises an error on the empty list.
+- `stddev` — `(stddev lst)` returns the population standard deviation of a non-empty list of numbers: `(sqrt (variance lst))`. Raises an error on the empty list.
 - `contains?` — check if element is in list
 - `index-of` — returns zero-based index of first occurrence, or -1
 - `repeat` — returns a list with element repeated n times
