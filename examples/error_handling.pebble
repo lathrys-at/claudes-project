@@ -1,0 +1,3 @@
+;;; Error handling: demonstrate try/catch
+(displayln (try (error "something went wrong") (catch e (string-append "caught: " e))))
+(displayln (string-append "result: " (number->string (try (* 5 6) (catch e (string-append "error: " e))))))

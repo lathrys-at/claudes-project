@@ -1,0 +1,18 @@
+;;; FizzBuzz: print numbers 1-15, with Fizz/Buzz/FizzBuzz replacements
+(define (fizzbuzz n)
+  (cond
+    ((and (= (modulo n 3) 0) (= (modulo n 5) 0))
+     (displayln "FizzBuzz"))
+    ((= (modulo n 3) 0)
+     (displayln "Fizz"))
+    ((= (modulo n 5) 0)
+     (displayln "Buzz"))
+    (else
+     (displayln n))))
+
+(define (fizzbuzz-loop i)
+  (when (<= i 15)
+    (fizzbuzz i)
+    (fizzbuzz-loop (+ i 1))))
+
+(fizzbuzz-loop 1)

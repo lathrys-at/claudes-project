@@ -1,0 +1,9 @@
+;;; Fibonacci: compute and print the first 10 Fibonacci numbers
+(define (fibonacci-helper a b count acc)
+  (if (= count 0)
+    (reverse acc)
+    (fibonacci-helper b (+ a b) (- count 1) (cons a acc))))
+
+(define fib-list (fibonacci-helper 0 1 10 nil))
+
+(displayln (string-join (map number->string fib-list) " "))

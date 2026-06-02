@@ -1,0 +1,18 @@
+;;; Word count: demonstrate hash maps with word frequency counting
+(define words (list "apple" "banana" "apple" "cherry" "banana" "apple"))
+
+; Count occurrences of each word
+(define (count-words word-list)
+  (foldl
+    (lambda (counts word)
+      (let ((current-count (hash-ref counts word 0)))
+        (hash-set counts word (+ current-count 1))))
+    (make-hash)
+    word-list))
+
+(define counts (count-words words))
+
+; Print the counts for each word
+(displayln (string-append "apple: " (number->string (hash-ref counts "apple"))))
+(displayln (string-append "banana: " (number->string (hash-ref counts "banana"))))
+(displayln (string-append "cherry: " (number->string (hash-ref counts "cherry"))))

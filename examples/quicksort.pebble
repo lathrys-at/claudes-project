@@ -1,0 +1,11 @@
+;;; Quicksort: sort a list of numbers in ascending order
+(define (quicksort lst)
+  (if (null? lst)
+    nil
+    (let* ((pivot (car lst))
+           (rest (cdr lst))
+           (less (filter (lambda (x) (< x pivot)) rest))
+           (greater-equal (filter (lambda (x) (>= x pivot)) rest)))
+      (append (quicksort less) (list pivot) (quicksort greater-equal)))))
+
+(displayln (quicksort (list 3 6 1 8 2 9 4)))

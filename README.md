@@ -36,6 +36,24 @@ python -m pebble path/to/script.pebble
 python -m pytest
 ```
 
+## Examples
+
+Pebble includes a suite of example programs in the `examples/` directory that demonstrate language features end-to-end:
+
+- `examples/fizzbuzz.pebble` — Classic FizzBuzz (1-15) demonstrating recursion and conditionals
+- `examples/fibonacci.pebble` — Computes first 10 Fibonacci numbers using tail-recursive helper
+- `examples/quicksort.pebble` — Sorts a list using the quicksort algorithm
+- `examples/wordcount.pebble` — Counts word frequencies using hash maps
+- `examples/error_handling.pebble` — Demonstrates try/catch error handling
+
+Run any example directly:
+
+```
+python -m pebble examples/fizzbuzz.pebble
+```
+
+All examples are covered by tests in `tests/test_examples.py`.
+
 ## Design
 
 Pebble values map onto Python values where natural:
