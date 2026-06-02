@@ -1,0 +1,33 @@
+;;; Collatz sequence (3n+1 problem)
+;;; Computes the Collatz sequence starting from a positive integer n.
+;;; The rule: if n is even, the next value is n/2; if n is odd, the next value is 3n+1.
+;;; The sequence stops when reaching 1.
+
+(define (collatz n)
+  ;; Validate that n is a positive integer
+  (if (not (integer? n))
+    (error "collatz: n must be an integer"))
+  (if (< n 1)
+    (error "collatz: n must be >= 1"))
+
+  ;; Helper function: build sequence using tail recursion with accumulator
+  ;; acc is built in reverse order, so we reverse it at the end
+  (define (collatz-helper current acc)
+    (if (= current 1)
+      ;; Reached 1, reverse accumulator to get correct order
+      (reverse (cons 1 acc))
+      ;; Not at 1 yet: compute next value and continue
+      (let ((next (if (even? current)
+                    (quotient current 2)
+                    (+ (* 3 current) 1))))
+        (collatz-helper next (cons current acc)))))
+
+  ;; Start the sequence with the initial value n
+  (collatz-helper n nil))
+
+(define (collatz-length n)
+  ;; Return the length of the Collatz sequence
+  (length (collatz n)))
+
+;; Demo: print the Collatz sequence for 6
+(displayln (collatz 6))

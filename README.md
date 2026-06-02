@@ -78,6 +78,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/quicksort.pebble` — Sorts a list using the quicksort algorithm
 - `examples/bst.pebble` — Immutable binary search tree built with `define-record`
 - `examples/bfs.pebble` — Breadth-first search shortest-path finder over a hash-map graph
+- `examples/collatz.pebble` — Computes the Collatz sequence (3n+1 problem) with stack-safe tail recursion
 - `examples/wordcount.pebble` — Counts word frequencies using hash maps
 - `examples/error_handling.pebble` — Demonstrates try/catch error handling
 - `examples/hanoi.pebble` — Towers of Hanoi solver returning the sequence of moves
@@ -101,7 +102,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_hanoi.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, `tests/test_heap.py`, `tests/test_metacircular.py`, and `tests/test_cipher.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_collatz.py`, `tests/test_hanoi.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, `tests/test_heap.py`, `tests/test_metacircular.py`, and `tests/test_cipher.py`.
 
 ## Design
 
