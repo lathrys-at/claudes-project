@@ -1,0 +1,48 @@
+;;; A small matrix (linear algebra) library over nested lists
+;;; Matrices are represented as lists of rows, where each row is a list of numbers.
+;;; Example: '((1 2 3) (4 5 6)) is a 2x3 matrix.
+
+; Helper: takes the i-th column from each row and returns it as a list
+(define (get-column matrix i)
+  (map (lambda (row) (nth row i)) matrix))
+
+; mat-transpose: returns the transpose of a matrix (rows become columns)
+(define (mat-transpose matrix)
+  (if (null? matrix)
+    nil
+    (let ((num-cols (length (car matrix))))
+      (map (lambda (col-idx) (get-column matrix col-idx))
+           (range num-cols)))))
+
+; Helper: compute the dot product of two lists (vectors)
+(define (dot-product v1 v2)
+  (sum (map2 * v1 v2)))
+
+; mat-mul: returns the matrix product of a (size p x q) and b (size q x r)
+; Result is p x r. Element (i,j) is the dot product of row i of a with column j of b.
+(define (mat-mul a b)
+  (let ((b-transposed (mat-transpose b)))
+    (map (lambda (row-a)
+           (map (lambda (col-b)
+                  (dot-product row-a col-b))
+                b-transposed))
+         a)))
+
+; mat-add: returns the element-wise sum of two matrices of the same dimensions
+(define (mat-add a b)
+  (map2 (lambda (row-a row-b)
+          (map2 + row-a row-b))
+        a
+        b))
+
+; identity-matrix: returns the n x n identity matrix (1 on diagonal, 0 elsewhere)
+(define (identity-matrix n)
+  (map (lambda (i)
+         (map (lambda (j)
+                (if (= i j) 1 0))
+              (range n)))
+       (range n)))
+
+; Demo: print two examples
+(displayln (mat-transpose (list (list 1 2 3) (list 4 5 6))))
+(displayln (mat-mul (list (list 1 2) (list 3 4)) (list (list 5 6) (list 7 8))))

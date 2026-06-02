@@ -82,6 +82,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/calculator.pebble` — Arithmetic expression evaluator with operator precedence and parentheses
 - `examples/metacircular.pebble` — A tiny Lisp interpreter written in Pebble, supporting lambda, closures, recursion, and define
 - `examples/json.pebble` — JSON (subset) parser and serializer for objects, arrays, strings, integers, and booleans
+- `examples/matrix.pebble` — A small matrix library: transpose, multiply, add, identity
 - `examples/life.pebble` — Conway's Game of Life on a mutable-vector grid
 - `examples/simplify.pebble` — Symbolic algebra simplifier using `match` pattern-matching to rewrite arithmetic expressions
 - `examples/rpn.pebble` — Reverse Polish Notation calculator using a vector as a stack
@@ -95,7 +96,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_json.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, and `tests/test_brainfuck.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, and `tests/test_brainfuck.py`.
 
 ## Design
 
