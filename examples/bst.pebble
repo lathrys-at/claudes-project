@@ -1,0 +1,54 @@
+;;; Immutable Binary Search Tree (BST)
+;;; A BST is either nil (empty tree) or a node record with value, left, and right subtrees.
+;;; All operations are immutable and return new trees without modifying existing ones.
+
+(define-record node (value left right))
+
+;;; (tree-insert tree v) returns a new tree with v inserted in BST order.
+;;; If tree is empty (nil), returns a single-node tree.
+;;; If v is less than the node's value, inserts into the left subtree.
+;;; If v is greater than the node's value, inserts into the right subtree.
+;;; If v equals the node's value, returns the tree unchanged (duplicates ignored).
+(define (tree-insert tree v)
+  (if (null? tree)
+    (make-node v nil nil)
+    (let ((node-val (node-value tree))
+          (left-subtree (node-left tree))
+          (right-subtree (node-right tree)))
+      (cond
+        ((< v node-val)
+         (make-node node-val (tree-insert left-subtree v) right-subtree))
+        ((> v node-val)
+         (make-node node-val left-subtree (tree-insert right-subtree v)))
+        (else tree)))))
+
+;;; (tree-contains? tree v) returns true if v is present in tree, false otherwise.
+(define (tree-contains? tree v)
+  (if (null? tree)
+    false
+    (let ((node-val (node-value tree)))
+      (cond
+        ((= v node-val) true)
+        ((< v node-val) (tree-contains? (node-left tree) v))
+        (else (tree-contains? (node-right tree) v))))))
+
+;;; (tree-inorder tree) returns a list of the tree's values via in-order traversal.
+;;; For a BST, this yields values in ascending sorted order.
+(define (tree-inorder tree)
+  (if (null? tree)
+    nil
+    (let ((left-vals (tree-inorder (node-left tree)))
+          (node-val (node-value tree))
+          (right-vals (tree-inorder (node-right tree))))
+      (append left-vals (list node-val) right-vals))))
+
+;;; (tree-from-list lst) builds a tree by inserting each element of lst in order,
+;;; starting from the empty tree.
+(define (tree-from-list lst)
+  (foldl tree-insert nil lst))
+
+;;; Demonstration: build a tree from a list and test its properties
+(define demo-tree (tree-from-list (list 5 3 8 1 4 7 9 2)))
+(displayln (tree-inorder demo-tree))
+(displayln (tree-contains? demo-tree 7))
+(displayln (tree-contains? demo-tree 6))

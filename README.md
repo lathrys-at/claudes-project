@@ -76,6 +76,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/fizzbuzz.pebble` — Classic FizzBuzz (1-15) demonstrating recursion and conditionals
 - `examples/fibonacci.pebble` — Computes first 10 Fibonacci numbers using tail-recursive helper
 - `examples/quicksort.pebble` — Sorts a list using the quicksort algorithm
+- `examples/bst.pebble` — Immutable binary search tree built with `define-record`
 - `examples/wordcount.pebble` — Counts word frequencies using hash maps
 - `examples/error_handling.pebble` — Demonstrates try/catch error handling
 - `examples/calculator.pebble` — Arithmetic expression evaluator with operator precedence and parentheses
@@ -89,7 +90,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`.
+All examples are covered by tests in `tests/test_examples.py` and `tests/test_bst.py`.
 
 ## Design
 
