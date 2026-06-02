@@ -187,12 +187,15 @@
        (range-helper a nil)))))
 
 ; take: returns the first n elements of lst
+; Uses a tail-recursive helper with accumulator to avoid stack overflow
 (define (take lst n)
-  (if (= n 0)
-    nil
-    (if (null? lst)
-      nil
-      (cons (car lst) (take (cdr lst) (- n 1))))))
+  (define (take-helper lst n acc)
+    (if (= n 0)
+      (reverse acc)
+      (if (null? lst)
+        (reverse acc)
+        (take-helper (cdr lst) (- n 1) (cons (car lst) acc)))))
+  (take-helper lst n nil))
 
 ; drop: returns lst with the first n elements removed
 (define (drop lst n)
@@ -217,12 +220,15 @@
     (foldl f (car lst) (cdr lst))))
 
 ; map2: applies a two-argument function to corresponding elements of two lists
+; Uses a tail-recursive helper with accumulator to avoid stack overflow
 (define (map2 f a b)
-  (if (null? a)
-    nil
-    (if (null? b)
-      nil
-      (cons (f (car a) (car b)) (map2 f (cdr a) (cdr b))))))
+  (define (map2-helper f a b acc)
+    (if (null? a)
+      (reverse acc)
+      (if (null? b)
+        (reverse acc)
+        (map2-helper f (cdr a) (cdr b) (cons (f (car a) (car b)) acc)))))
+  (map2-helper f a b nil))
 
 ; zip: pairs corresponding elements of two lists
 (define (zip a b)
@@ -241,15 +247,17 @@
 ; ===== STRING FUNCTIONS =====
 
 ; string-join: joins a list of strings with a separator
+; Uses a tail-recursive helper with accumulator to avoid stack overflow
 (define (string-join lst sep)
+  (define (join-helper lst sep acc)
+    (if (null? lst)
+      acc
+      (join-helper (cdr lst) sep (string-append acc sep (car lst)))))
   (if (null? lst)
     ""
     (if (null? (cdr lst))
       (car lst)
-      (string-append
-        (car lst)
-        sep
-        (string-join (cdr lst) sep)))))
+      (join-helper (cdr lst) sep (car lst)))))
 
 ; ===== SORTING FUNCTIONS =====
 

@@ -594,6 +594,24 @@ class TestTakeDrop:
         result = eval_source("(take (list 1 2 3) 0)", env)
         assert result == NIL
 
+    def test_take_large_list_partial(self):
+        """Test that take handles a large list without stack overflow."""
+        env = make_global_env()
+        # Take 4000 elements from a 5000-element list
+        result = eval_source("(take (range 5000) 4000)", env)
+        assert len(result) == 4000
+        # Verify the last element is correct (should be 3999)
+        assert eval_source("(last (take (range 5000) 4000))", env) == 3999
+
+    def test_take_large_list_more_than_length(self):
+        """Test that take more than list length returns the whole list."""
+        env = make_global_env()
+        # Take 5000 elements from a 100-element list
+        result = eval_source("(take (range 100) 5000)", env)
+        assert len(result) == 100
+        # Verify all elements are present
+        assert eval_source("(last (take (range 100) 5000))", env) == 99
+
     def test_drop_basic(self):
         env = make_global_env()
         result = eval_source("(drop (list 1 2 3 4 5) 2)", env)
@@ -666,6 +684,27 @@ class TestMap2:
         result = eval_source("(map2 + (list 1 2) (list 10 20 30))", env)
         assert list(result) == [11, 22]
 
+    def test_map2_large_lists(self):
+        """Test that map2 handles large lists without stack overflow."""
+        env = make_global_env()
+        # Apply + to corresponding elements of two 4000-element lists
+        result = eval_source("(map2 + (range 4000) (range 4000))", env)
+        assert len(result) == 4000
+        # Element at index i should be 2*i
+        # Check a sample element: the element at index 100 should be 200
+        assert eval_source("(nth (map2 + (range 4000) (range 4000)) 100)", env) == 200
+        # Check the last element
+        assert eval_source("(last (map2 + (range 4000) (range 4000)))", env) == 7998
+
+    def test_map2_large_lists_stop_at_shorter(self):
+        """Test that map2 still stops at the shorter list with large inputs."""
+        env = make_global_env()
+        # One list is 4000 elements, the other is 10
+        result = eval_source("(map2 + (range 4000) (range 10))", env)
+        assert len(result) == 10
+        # Last element should be 9 + 9 = 18
+        assert eval_source("(last (map2 + (range 4000) (range 10)))", env) == 18
+
 
 class TestZip:
     """Tests for zip function."""
@@ -676,6 +715,19 @@ class TestZip:
         # Result is a list of lists
         result_list = [list(x) for x in result]
         assert result_list == [[1, 4], [2, 5], [3, 6]]
+
+    def test_zip_large_lists(self):
+        """Test that zip handles large lists without stack overflow (via map2)."""
+        env = make_global_env()
+        # Zip two 3000-element lists
+        result = eval_source("(zip (range 3000) (range 100 3100))", env)
+        assert len(result) == 3000
+        # First pair should be (0 100)
+        first_pair = eval_source("(car (zip (range 3000) (range 100 3100)))", env)
+        assert list(first_pair) == [0, 100]
+        # Last pair should be (2999 3099)
+        last_pair = eval_source("(last (zip (range 3000) (range 100 3100)))", env)
+        assert list(last_pair) == [2999, 3099]
 
 
 class TestFlatten:
@@ -719,6 +771,24 @@ class TestStringJoin:
         env = make_global_env()
         result = eval_source('(string-join (list "hello" "world") " ")', env)
         assert result == "hello world"
+
+    def test_string_join_large_list(self):
+        """Test that string-join handles a large list without stack overflow."""
+        env = make_global_env()
+        # Join 3000 number strings with a separator
+        result = eval_source("""
+            (string-join
+              (map (lambda (x) (number->string x)) (range 3000))
+              ",")
+        """, env)
+        # Verify it completed without error (no RecursionError)
+        assert isinstance(result, str)
+        # Check that it starts with "0,"
+        assert result.startswith("0,")
+        # Check that it contains a middle element (e.g., "1500")
+        assert "1500" in result
+        # Check that it ends with the last element "2999"
+        assert result.endswith("2999")
 
 
 class TestDisplayln:
