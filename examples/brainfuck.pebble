@@ -1,0 +1,96 @@
+;;; Brainfuck Interpreter
+;;; A Brainfuck interpreter using a mutable vector as the tape.
+;;;
+;;; Returns the output produced by a Brainfuck program as a string.
+;;; The memory tape is a vector of 30000 bytes (cells), all initialized to 0.
+;;; Commands:
+;;;   + : increment current cell (wrapping at 256)
+;;;   - : decrement current cell (wrapping at 256)
+;;;   > : move pointer right
+;;;   < : move pointer left
+;;;   . : output current cell as a character
+;;;   [ : if current cell is 0, jump forward to matching ]
+;;;   ] : if current cell is nonzero, jump backward to matching [
+;;; Any other character is ignored.
+
+(define (brainfuck program-string)
+  ; Initialize tape (30000 bytes, all 0) and output accumulator
+  (let ((tape (make-vector 30000 0))
+        (data-ptr 0)
+        (instr-ptr 0)
+        (output ""))
+
+    ; Build a bracket-matching map for fast [ and ] jumps
+    ; bracket-map[i] = j means if at position i (a [ or ]), the matching bracket is at j
+    (define (build-bracket-map)
+      (let ((map (make-vector (string-length program-string) -1)))
+        (let loop ((i 0) (stack nil))
+          (if (< i (string-length program-string))
+            (let ((ch (char-at program-string i)))
+              (cond
+                ((= ch "[")
+                 (loop (+ i 1) (cons i stack)))
+                ((= ch "]")
+                 (if (null? stack)
+                   (error "Unmatched ]")
+                   (let ((open-pos (car stack)))
+                     (vector-set! map open-pos (+ i 1))
+                     (vector-set! map i (+ open-pos 1))
+                     (loop (+ i 1) (cdr stack)))))
+                (else
+                 (loop (+ i 1) stack))))
+            (if (null? stack) map (error "Unmatched ["))))
+        map))
+
+    (let ((bracket-map (build-bracket-map)))
+
+      ; Main execution loop
+      (let loop ((ip instr-ptr) (dp data-ptr) (out output))
+        (if (< ip (string-length program-string))
+          (let ((ch (char-at program-string ip)))
+            (cond
+              ; + : increment current cell (mod 256)
+              ((= ch "+")
+               (let ((new-val (modulo (+ (vector-ref tape dp) 1) 256)))
+                 (vector-set! tape dp new-val)
+                 (loop (+ ip 1) dp out)))
+
+              ; - : decrement current cell (mod 256)
+              ((= ch "-")
+               (let ((new-val (modulo (- (vector-ref tape dp) 1) 256)))
+                 (vector-set! tape dp new-val)
+                 (loop (+ ip 1) dp out)))
+
+              ; > : move pointer right
+              ((= ch ">")
+               (loop (+ ip 1) (+ dp 1) out))
+
+              ; < : move pointer left
+              ((= ch "<")
+               (loop (+ ip 1) (- dp 1) out))
+
+              ; . : output current cell as character
+              ((= ch ".")
+               (let ((new-out (string-append out (integer->char (vector-ref tape dp)))))
+                 (loop (+ ip 1) dp new-out)))
+
+              ; [ : if current cell is 0, jump forward to matching ]
+              ((= ch "[")
+               (if (= (vector-ref tape dp) 0)
+                 (loop (vector-ref bracket-map ip) dp out)
+                 (loop (+ ip 1) dp out)))
+
+              ; ] : if current cell is nonzero, jump backward to matching [
+              ((= ch "]")
+               (if (not (= (vector-ref tape dp) 0))
+                 (loop (- (vector-ref bracket-map ip) 1) dp out)
+                 (loop (+ ip 1) dp out)))
+
+              ; Any other character: ignore
+              (else
+               (loop (+ ip 1) dp out))))
+          out)))))
+
+; Demo: Print the output of a Brainfuck program that outputs "HI"
+; cell0=9; loop adds 8 nine times -> 72 (H); output; +1 -> 73 (I); output
+(displayln (brainfuck "+++++++++[>++++++++<-]>.+."))

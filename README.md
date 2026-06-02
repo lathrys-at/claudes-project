@@ -87,6 +87,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/rpn.pebble` — Reverse Polish Notation calculator using a vector as a stack
 - `examples/streams.pebble` — Lazy infinite streams library built on `delay`/`force` promises
 - `examples/primes.pebble` — Infinite stream of primes via a lazy Sieve of Eratosthenes
+- `examples/brainfuck.pebble` — Brainfuck interpreter using a mutable-vector memory tape
 
 Run any example directly:
 
@@ -94,7 +95,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_json.py`, `tests/test_rpn.py`, `tests/test_streams.py`, and `tests/test_primes.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_json.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, and `tests/test_brainfuck.py`.
 
 ## Design
 
