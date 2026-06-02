@@ -17,7 +17,9 @@
     'true
     (if (null? (cdr args))
       (car args)
-      `(if ,(car args) (and ,@(cdr args)) ,(car args)))))
+      (let ((first-gensym (gensym)))
+        `(let ((,first-gensym ,(car args)))
+           (if ,first-gensym (and ,@(cdr args)) ,first-gensym))))))
 
 ; or: variadic short-circuiting logical OR
 (define-macro (or . args)

@@ -108,6 +108,16 @@ class TestAndMacro:
         # counter should be 1 because both forms are evaluated
         assert result == 1
 
+    def test_and_evaluates_falsy_argument_exactly_once(self):
+        env = make_global_env()
+        result = eval_source("""
+            (define counter 0)
+            (and true (begin (set! counter (+ counter 1)) false) 99)
+            counter
+        """, env)
+        # counter should be 1 (the falsy argument is evaluated exactly once)
+        assert result == 1
+
 
 class TestOrMacro:
     """Tests for the or macro."""
