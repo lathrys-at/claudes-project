@@ -402,3 +402,78 @@
 (define (displayln x)
   (display x)
   (newline))
+
+; ===== PATTERN MATCHING =====
+
+; match: pattern-matching macro that supports literal, variable, wildcard, and list patterns
+(define-macro match
+  (lambda (scrutinee . clauses)
+    (let ((val-var (gensym)))
+      `(let ((,val-var ,scrutinee))
+         ,(match-gen-code clauses val-var)))))
+
+; Generate code for clause matching - returns code as a list structure
+(define (match-gen-code clauses val-var)
+  (if (null? clauses)
+    (list (quote error) "match: no matching clause")
+    (let* ((clause (car clauses))
+           (pat (car clause))
+           (body (cdr clause))
+           (rest-code (match-gen-code (cdr clauses) val-var))
+           (pat-check (match-gen-check pat val-var))
+           (pat-bindings (match-gen-bindings pat val-var)))
+      (if (null? pat-bindings)
+        ; No bindings: just (if check (begin body) rest-code)
+        (list (quote if) pat-check (cons (quote begin) body) rest-code)
+        ; With bindings: (if check (let bindings (begin body)) rest-code)
+        (list (quote if) pat-check (list (quote let) pat-bindings (cons (quote begin) body)) rest-code)))))
+
+; Generate a check expression for a pattern
+(define (match-gen-check pat val-var)
+  (cond
+    ((and (symbol? pat) (= (symbol->string pat) "_"))
+     (quote true))
+    ((null? pat)
+     (list (quote null?) val-var))
+    ((or (number? pat) (string? pat) (boolean? pat))
+     (list (quote =) val-var (list (quote quote) pat)))
+    ((symbol? pat)
+     (quote true))
+    ((pair? pat)
+     (let ((len (length pat)))
+       (if (and (> len 1) (symbol? (nth pat (- len 2))) (= (symbol->string (nth pat (- len 2))) "."))
+         ; Tail pattern - check minimum length and fixed elements
+         (let ((fixed-count (length (take pat (- len 2)))))
+           (list (quote >=) (list (quote length) val-var) fixed-count))
+         ; Fixed pattern - check exact length
+         (list (quote =) (list (quote length) val-var) len))))
+    (else (quote false))))
+
+; Generate bindings for a pattern
+(define (match-gen-bindings pat val-var)
+  (cond
+    ((symbol? pat)
+     (if (= (symbol->string pat) "_")
+       nil
+       (list (list pat val-var))))
+    ((pair? pat)
+     (let ((len (length pat)))
+       (if (and (> len 1) (symbol? (nth pat (- len 2))) (= (symbol->string (nth pat (- len 2))) "."))
+         ; Tail pattern - bind rest variable
+         (let ((rest-var (nth pat (- len 1)))
+               (fixed-count (length (take pat (- len 2)))))
+           (append (match-gen-list-bindings (take pat (- len 2)) val-var 0)
+                   (list (list rest-var (list (quote drop) val-var fixed-count)))))
+         ; Fixed pattern - bind element variables
+         (match-gen-list-bindings pat val-var 0))))
+    (else nil)))
+
+; Generate bindings for list pattern variables
+(define (match-gen-list-bindings pats val-var index)
+  (if (null? pats)
+    nil
+    (let ((pat (car pats)))
+      (if (and (symbol? pat) (not (= (symbol->string pat) "_")))
+        (cons (list pat (list (quote nth) val-var index))
+              (match-gen-list-bindings (cdr pats) val-var (+ index 1)))
+        (match-gen-list-bindings (cdr pats) val-var (+ index 1))))))
