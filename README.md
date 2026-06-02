@@ -101,6 +101,7 @@ Pebble values map onto Python values where natural:
 | symbol        | `pebble.types.Symbol`          |
 | list          | `pebble.types.PebbleList`      |
 | hash map      | `pebble.types.PebbleHash`      |
+| vector        | `pebble.types.PebbleVector`    |
 | nil / empty   | empty `PebbleList`             |
 | boolean       | `True` / `False`               |
 
@@ -275,6 +276,40 @@ Hash maps are first-class values and support functional, immutable operations:
 ```
 
 All hash map operations return new maps and leave the originals unchanged (immutability). Keys can be any hashable value: integers, strings, symbols, booleans, and the empty list.
+
+### Mutable Vectors
+
+Pebble includes a mutable vector (array) data type for dynamic, in-place sequence manipulation.
+Unlike Pebble lists and hash maps (which are immutable), vectors support mutation and are useful for algorithms requiring efficient dynamic arrays:
+
+```scheme
+; Create vectors
+(define v (vector 1 2 3))           ; => #(1 2 3)
+(define v (make-vector 5 0))        ; => #(0 0 0 0 0) (5 elements, filled with 0)
+(define v (make-vector 3))          ; => #(nil nil nil) (filled with nil by default)
+
+; Access elements
+(vector-ref v 0)                    ; => 1
+(vector-length v)                   ; => 3
+
+; Mutate in place (visible through all references)
+(vector-set! v 0 99)                ; => nil (returns nil, modifies v)
+(vector-ref v 0)                    ; => 99
+
+; Dynamic growth
+(vector-push! v 4)                  ; => nil (appends 4, grows vector by 1)
+(vector-length v)                   ; => 4
+
+; Conversions
+(vector->list v)                    ; => (99 2 3 4) (creates immutable list)
+(list->vector (list 1 2 3))         ; => #(1 2 3) (creates mutable vector)
+
+; Testing and predicates
+(vector? v)                         ; => true
+(vector? (list 1 2))               ; => false
+```
+
+Vectors are mutable, meaning `vector-set!` changes the vector in place and is visible through all references to that vector (true reference semantics). An empty vector `#()` is still truthy (only `false` and the empty list are falsy).
 
 ### Standard Library
 

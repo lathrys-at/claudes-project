@@ -1,5 +1,5 @@
 """Builtin functions for the Pebble Lisp interpreter."""
-from pebble.types import Symbol, PebbleList, NIL, PebbleHash
+from pebble.types import Symbol, PebbleList, NIL, PebbleHash, PebbleVector
 from pebble.evaluator import EvalError, is_truthy
 
 # Gensym counter for generating unique symbols
@@ -294,6 +294,83 @@ def builtin_table(apply_proc):
             raise EvalError(f"apply: second argument must be a list, got {type(args_list).__name__}")
         return apply_proc(f, list(args_list))
 
+    # ===== VECTOR OPERATIONS =====
+
+    def builtin_vector(*args):
+        """(vector e1 e2 ...) -> new PebbleVector containing the elements."""
+        return PebbleVector(args)
+
+    def builtin_make_vector(*args):
+        """(make-vector n) or (make-vector n fill) -> vector of length n.
+
+        With one arg, fills with nil. With two args, fills with fill value.
+        n must be a non-negative integer.
+        """
+        if len(args) == 1:
+            n = args[0]
+            fill = NIL
+        elif len(args) == 2:
+            n, fill = args
+        else:
+            raise EvalError(f"make-vector: expected 1 or 2 arguments, got {len(args)}")
+
+        if not isinstance(n, int) or isinstance(n, bool):
+            raise EvalError(f"make-vector: first argument must be an integer, got {type(n).__name__}")
+        if n < 0:
+            raise EvalError(f"make-vector: length must be non-negative, got {n}")
+
+        return PebbleVector([fill] * n)
+
+    def builtin_vector_p(x):
+        """(vector? x) -> True if x is a PebbleVector, else False."""
+        return isinstance(x, PebbleVector)
+
+    def builtin_vector_ref(v, i):
+        """(vector-ref v i) -> element at index i."""
+        if not isinstance(v, PebbleVector):
+            raise EvalError(f"vector-ref: first argument must be a vector, got {type(v).__name__}")
+        if not isinstance(i, int) or isinstance(i, bool):
+            raise EvalError(f"vector-ref: second argument must be an integer, got {type(i).__name__}")
+        if i < 0 or i >= len(v):
+            raise EvalError(f"vector-ref: index {i} out of range for vector of length {len(v)}")
+        return v[i]
+
+    def builtin_vector_set(v, i, x):
+        """(vector-set! v i x) -> mutate v at index i to x, return nil."""
+        if not isinstance(v, PebbleVector):
+            raise EvalError(f"vector-set!: first argument must be a vector, got {type(v).__name__}")
+        if not isinstance(i, int) or isinstance(i, bool):
+            raise EvalError(f"vector-set!: second argument must be an integer, got {type(i).__name__}")
+        if i < 0 or i >= len(v):
+            raise EvalError(f"vector-set!: index {i} out of range for vector of length {len(v)}")
+        v[i] = x
+        return NIL
+
+    def builtin_vector_length(v):
+        """(vector-length v) -> integer length of v."""
+        if not isinstance(v, PebbleVector):
+            raise EvalError(f"vector-length: argument must be a vector, got {type(v).__name__}")
+        return len(v)
+
+    def builtin_vector_to_list(v):
+        """(vector->list v) -> PebbleList of v's elements."""
+        if not isinstance(v, PebbleVector):
+            raise EvalError(f"vector->list: argument must be a vector, got {type(v).__name__}")
+        return PebbleList(v._data)
+
+    def builtin_list_to_vector(lst):
+        """(list->vector lst) -> new PebbleVector from list's elements."""
+        if not isinstance(lst, PebbleList):
+            raise EvalError(f"list->vector: argument must be a list, got {type(lst).__name__}")
+        return PebbleVector(lst)
+
+    def builtin_vector_push(v, x):
+        """(vector-push! v x) -> append x to v, return nil."""
+        if not isinstance(v, PebbleVector):
+            raise EvalError(f"vector-push!: first argument must be a vector, got {type(v).__name__}")
+        v.append(x)
+        return NIL
+
     # ===== STRING OPERATIONS =====
 
     def builtin_string_append(*args):
@@ -574,6 +651,15 @@ def builtin_table(apply_proc):
         "foldr": builtin_foldr,
         "for-each": builtin_for_each,
         "apply": builtin_apply,
+        "vector": builtin_vector,
+        "make-vector": builtin_make_vector,
+        "vector?": builtin_vector_p,
+        "vector-ref": builtin_vector_ref,
+        "vector-set!": builtin_vector_set,
+        "vector-length": builtin_vector_length,
+        "vector->list": builtin_vector_to_list,
+        "list->vector": builtin_list_to_vector,
+        "vector-push!": builtin_vector_push,
         "string-append": builtin_string_append,
         "string-length": builtin_string_length,
         "substring": builtin_substring,

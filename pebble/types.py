@@ -73,5 +73,47 @@ class PebbleHash:
         return self._data.items()
 
 
+class PebbleVector:
+    """A mutable vector (array) for Pebble.
+
+    Wraps a Python list internally. Two PebbleVector instances are equal if they
+    currently contain the same elements in the same order (via ==).
+    """
+    __slots__ = ('_data',)
+
+    def __init__(self, items: Iterable = ()):
+        """Create a PebbleVector from an iterable."""
+        self._data = list(items)
+
+    def __repr__(self) -> str:
+        return f"PebbleVector({self._data!r})"
+
+    def __eq__(self, other) -> bool:
+        """Two PebbleVector instances are equal if their current data is equal."""
+        if not isinstance(other, PebbleVector):
+            return False
+        return self._data == other._data
+
+    def __hash__(self):
+        """PebbleVector is not hashable (mutable)."""
+        raise TypeError("unhashable type: 'PebbleVector'")
+
+    def __len__(self) -> int:
+        """Return length of vector."""
+        return len(self._data)
+
+    def __getitem__(self, index):
+        """Get element at index."""
+        return self._data[index]
+
+    def __setitem__(self, index, value):
+        """Set element at index (for internal use)."""
+        self._data[index] = value
+
+    def append(self, value):
+        """Append value to the end of the vector."""
+        self._data.append(value)
+
+
 # The canonical empty list / nil.
 NIL = PebbleList()
