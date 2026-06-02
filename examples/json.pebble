@@ -1,0 +1,184 @@
+;;; JSON (subset) parser and serializer
+;;; Supported: objects (maps), arrays (lists), strings, integers, booleans
+
+; Skip whitespace from position
+(define (skip-ws s pos)
+  (if (>= pos (string-length s))
+    pos
+    (let ((ch (char-at s pos)))
+      (if (or (= ch " ") (= ch "\t") (= ch "\n") (= ch "\r"))
+        (skip-ws s (+ pos 1))
+        pos))))
+
+; Parse a string literal
+(define (parse-str s pos)
+  (let ((pos (+ pos 1)))
+    (define (loop pos acc)
+      (if (>= pos (string-length s))
+        (error "Unterminated string")
+        (let ((ch (char-at s pos)))
+          (cond
+            ((= ch "\"") (list acc (+ pos 1)))
+            ((= ch "\\")
+             (if (>= (+ pos 1) (string-length s))
+               (error "Unterminated string")
+               (let ((esc (char-at s (+ pos 1))))
+                 (cond
+                   ((= esc "\"") (loop (+ pos 2) (string-append acc "\"")))
+                   ((= esc "\\") (loop (+ pos 2) (string-append acc "\\")))
+                   ((= esc "n") (loop (+ pos 2) (string-append acc "\n")))
+                   (else (error "Invalid escape"))))))
+            (else (loop (+ pos 1) (string-append acc ch)))))))
+    (loop pos "")))
+
+; Parse a number
+(define (parse-num s pos)
+  (define (loop pos acc)
+    (if (>= pos (string-length s))
+      (list (string->number acc) pos)
+      (let ((ch (char-at s pos)))
+        (if (or (char-numeric? ch) (= ch "-"))
+          (loop (+ pos 1) (string-append acc ch))
+          (list (string->number acc) pos)))))
+  (loop pos ""))
+
+; Parse a boolean
+(define (parse-bool s pos)
+  (if (> (+ pos 4) (string-length s))
+    (error "Invalid boolean")
+    (if (= (substring s pos (+ pos 4)) "true")
+      (list true (+ pos 4))
+      (if (> (+ pos 5) (string-length s))
+        (error "Invalid boolean")
+        (if (= (substring s pos (+ pos 5)) "false")
+          (list false (+ pos 5))
+          (error "Invalid boolean"))))))
+
+; Forward declare parse-val
+(define parse-val nil)
+
+; Parse array elements
+(define (parse-arr-elems s pos acc)
+  (let ((pos (skip-ws s pos)))
+    (if (= (char-at s pos) "]")
+      (list (reverse acc) (+ pos 1))
+      (let ((elem (parse-val s pos)))
+        (let ((pos (cadr elem)))
+          (let ((pos (skip-ws s pos)))
+            (if (= (char-at s pos) "]")
+              (list (reverse (cons (car elem) acc)) (+ pos 1))
+              (if (= (char-at s pos) ",")
+                (parse-arr-elems s (+ pos 1) (cons (car elem) acc))
+                (error "Bad array")))))))))
+
+; Parse array
+(define (parse-arr s pos)
+  (let ((pos (skip-ws s (+ pos 1))))
+    (if (= (char-at s pos) "]")
+      (list nil (+ pos 1))
+      (parse-arr-elems s pos nil))))
+
+; Parse object entries
+(define (parse-obj-entries s pos hash)
+  (let ((pos (skip-ws s pos)))
+    (if (= (char-at s pos) "}")
+      (list hash (+ pos 1))
+      (let ((key (parse-str s pos)))
+        (let ((pos (skip-ws s (cadr key))))
+          (if (= (char-at s pos) ":")
+            (let ((val (parse-val s (skip-ws s (+ pos 1)))))
+              (let ((pos (skip-ws s (cadr val)))
+                    (hash (hash-set hash (car key) (car val))))
+                (if (= (char-at s pos) "}")
+                  (list hash (+ pos 1))
+                  (if (= (char-at s pos) ",")
+                    (parse-obj-entries s (+ pos 1) hash)
+                    (error "Bad object")))))
+            (error "Bad object")))))))
+
+; Parse object
+(define (parse-obj s pos)
+  (let ((pos (skip-ws s (+ pos 1))))
+    (if (= (char-at s pos) "}")
+      (list (make-hash) (+ pos 1))
+      (parse-obj-entries s pos (make-hash)))))
+
+; Main parse function
+(define (parse-val-impl s pos)
+  (let ((pos (skip-ws s pos)))
+    (let ((ch (char-at s pos)))
+      (cond
+        ((= ch "{") (parse-obj s pos))
+        ((= ch "[") (parse-arr s pos))
+        ((= ch "\"") (parse-str s pos))
+        ((or (= ch "t") (= ch "f")) (parse-bool s pos))
+        ((or (char-numeric? ch) (= ch "-")) (parse-num s pos))
+        (else (error "Bad JSON"))))))
+
+; Set up forward reference
+(set! parse-val parse-val-impl)
+
+; Main entry point for parsing
+(define (json-parse s)
+  (let ((result (parse-val s 0)))
+    (let ((pos (skip-ws s (cadr result))))
+      (if (< pos (string-length s))
+        (error "Extra chars")
+        (car result)))))
+
+; Escape chars in string
+(define (esc-str s)
+  (define (loop s acc)
+    (if (= (string-length s) 0)
+      acc
+      (let ((ch (char-at s 0)))
+        (let ((esc (cond
+                     ((= ch "\"") "\\\"")
+                     ((= ch "\\") "\\\\")
+                     ((= ch "\n") "\\n")
+                     (else ch))))
+          (loop (substring s 1 (string-length s)) (string-append acc esc))))))
+  (loop s ""))
+
+; Serialize string
+(define (ser-str s)
+  (string-append "\"" (esc-str s) "\""))
+
+; Serialize number
+(define (ser-num n)
+  (number->string n))
+
+; Serialize boolean
+(define (ser-bool b)
+  (if b "true" "false"))
+
+; Serialize array
+(define (ser-arr lst)
+  (if (null? lst)
+    "[]"
+    (let ((elems (map json-serialize lst)))
+      (string-append "[" (string-join elems ", ") "]"))))
+
+; Serialize object
+(define (ser-obj h)
+  (let ((keys (hash-keys h)))
+    (if (null? keys)
+      "{}"
+      (let ((pairs (map (lambda (k)
+                          (string-append (ser-str k) ": " (json-serialize (hash-ref h k))))
+                        keys)))
+        (string-append "{" (string-join pairs ", ") "}")))))
+
+; Main serializer
+(define (json-serialize v)
+  (cond
+    ((hash? v) (ser-obj v))
+    ((list? v) (ser-arr v))
+    ((string? v) (ser-str v))
+    ((number? v) (ser-num v))
+    ((boolean? v) (ser-bool v))
+    (else (error "Bad value"))))
+
+; Demo
+(displayln (json-serialize (json-parse "{\"a\": 1, \"b\": 2}")))
+(displayln (json-serialize (json-parse "[1, 2, 3]")))
