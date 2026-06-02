@@ -1,0 +1,48 @@
+;;; Levenshtein edit distance via dynamic programming on a mutable vector
+;;;
+;;; Compute the minimum number of insertions, deletions, and substitutions
+;;; needed to transform string a into string b.
+;;;
+;;; Algorithm: Wagner-Fischer, using a mutable vector as a rolling DP row.
+
+(define (edit-distance a b)
+  (let* ((m (string-length a))
+         (n (string-length b))
+         (dp (make-vector (+ n 1))))
+
+    ; Initialize: dp[j] = j (cost to build first j chars of b from empty a)
+    (dotimes (j (+ n 1))
+      (vector-set! dp j j))
+
+    ; Main DP loop: for each character in a
+    (dotimes (i m)
+      (let ((row-index (+ i 1)))
+        ; Save the old dp[0] value (the "diagonal" from previous row)
+        (let ((prev-diag (vector-ref dp 0)))
+          ; Set dp[0] = row index (cost to delete first row-index chars of a)
+          (vector-set! dp 0 row-index)
+
+          ; For each character in b
+          (let process-col ((j 1) (prev prev-diag))
+            (if (> j n)
+              nil  ; Done with this row
+              (let* ((old-dp-j (vector-ref dp j))
+                     (a-char (char-at a i))
+                     (b-char (char-at b (- j 1)))
+                     (match-cost (if (= a-char b-char) 0 1))
+                     (deletion-cost (+ old-dp-j 1))
+                     (insertion-cost (+ (vector-ref dp (- j 1)) 1))
+                     (substitution-cost (+ prev match-cost))
+                     (new-dp-j (min deletion-cost insertion-cost substitution-cost)))
+
+                ; Update dp[j] with the new value
+                (vector-set! dp j new-dp-j)
+
+                ; Move to next j, with old_dp_j becoming the new "prev" (diagonal)
+                (process-col (+ j 1) old-dp-j)))))))
+
+    ; Return the final answer
+    (vector-ref dp n)))
+
+;;; Demo
+(displayln (number->string (edit-distance "kitten" "sitting")))
