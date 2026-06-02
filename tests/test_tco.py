@@ -344,10 +344,14 @@ class TestTailCallOptimization:
             seval(Symbol("#f"), env)
 
     def test_regression_define_function_syntax_not_allowed(self):
-        """Regression: (define (f x) x) should raise EvalError (first arg must be symbol)."""
+        """Define now supports function syntax: (define (f x) x) creates a function."""
         env = make_global_env()
         source = "(define (f x) x)"
-        with pytest.raises(EvalError, match="define: first argument must be a symbol"):
-            from pebble.reader import read
-            forms = read(source)
-            seval(forms[0], env)
+        from pebble.reader import read
+        forms = read(source)
+        result = seval(forms[0], env)
+        # Should return the function name
+        assert result == Symbol("f")
+        # And the function should be callable
+        func_result = seval(read("(f 42)")[0], env)
+        assert func_result == 42

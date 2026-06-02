@@ -319,17 +319,42 @@ def _seval_internal(expr, env):
                         return NIL
 
             elif head == "define":
-                if len(expr) != 3:
-                    raise EvalError(f"define requires exactly 2 arguments, got {len(expr) - 1}")
+                if len(expr) < 2:
+                    raise EvalError(f"define requires at least 1 argument, got {len(expr) - 1}")
 
-                name = expr[1]
-                if not isinstance(name, Symbol):
-                    raise EvalError(f"define: first argument must be a symbol, got {type(name).__name__}")
+                # Check if it's function-style (a) or value-style (b)
+                if isinstance(expr[1], PebbleList):
+                    # Function-style: (define (name param1 param2 ...) body...)
+                    params_and_name = expr[1]
+                    if len(params_and_name) == 0:
+                        raise EvalError("define: function name and parameters list cannot be empty")
 
-                # Value-style: (define name value-expr)
-                value = _trampoline(_seval_internal(expr[2], env))
-                env.define(name, value)
-                return name
+                    func_name = params_and_name[0]
+                    if not isinstance(func_name, Symbol):
+                        raise EvalError(f"define: function name must be a symbol, got {type(func_name).__name__}")
+
+                    # Parse the parameters (everything after the name)
+                    param_spec = PebbleList(params_and_name[1:])
+                    fixed, rest = parse_param_spec(param_spec)
+
+                    body = list(expr[2:])
+                    procedure = Procedure(fixed, body, env, rest=rest)
+                    env.define(func_name, procedure)
+                    return func_name
+
+                elif isinstance(expr[1], Symbol):
+                    # Value-style: (define name value-expr)
+                    if len(expr) != 3:
+                        raise EvalError(f"define requires exactly 2 arguments, got {len(expr) - 1}")
+
+                    name = expr[1]
+                    # Value-style: (define name value-expr)
+                    value = _trampoline(_seval_internal(expr[2], env))
+                    env.define(name, value)
+                    return name
+
+                else:
+                    raise EvalError(f"define: first argument must be a symbol or list, got {type(expr[1]).__name__}")
 
             elif head == "define-macro":
                 if len(expr) < 2:

@@ -50,6 +50,29 @@ Pebble values map onto Python values where natural:
 | nil / empty   | empty `PebbleList`             |
 | boolean       | `True` / `False`               |
 
+### Function Definitions
+
+The `define` special form supports a function-definition shorthand in addition to the standard value form:
+
+```scheme
+; Value-style: bind a value to a name
+(define x 42)
+
+; Function-definition shorthand: equivalent to (define f (lambda (a b) (+ a b)))
+(define (f a b)
+  (+ a b))
+
+; The shorthand supports variadic parameters just like lambda
+(define (sum . xs)
+  (foldl + 0 xs))
+
+(define (map-with-prefix prefix . items)
+  (map (lambda (x) (cons prefix x)) items))
+```
+
+The shorthand returns the function name symbol. Functions defined this way are tail-call optimized,
+and the function's own name is in scope within its body, allowing recursion.
+
 ### Macros
 
 Macros are unhygienic, defmacro-style (like Scheme's non-hygienic macros).

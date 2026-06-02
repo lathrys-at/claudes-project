@@ -388,7 +388,7 @@ class TestDefine:
     def test_define_malformed_no_args(self):
         env = make_global_env()
         expr = read_one("(define)")
-        with pytest.raises(EvalError, match="define requires exactly 2 arguments"):
+        with pytest.raises(EvalError, match="define requires at least 1 argument"):
             seval(expr, env)
 
     def test_define_malformed_non_symbol_name(self):
