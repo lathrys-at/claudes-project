@@ -94,6 +94,45 @@ The `define` special form supports a function-definition shorthand in addition t
 The shorthand returns the function name symbol. Functions defined this way are tail-call optimized,
 and the function's own name is in scope within its body, allowing recursion.
 
+### Local Recursion: `letrec` and Named `let`
+
+For local recursive and iterative functions without top-level `define`, Pebble provides two forms:
+
+**`letrec`** creates a scope where multiple names may be mutually recursive:
+
+```scheme
+; Single recursion
+(letrec ((fact (lambda (n) (if (= n 0) 1 (* n (fact (- n 1)))))))
+  (fact 5))  ; => 120
+
+; Mutual recursion
+(letrec ((even? (lambda (n) (if (= n 0) true (odd? (- n 1)))))
+         (odd?  (lambda (n) (if (= n 0) false (even? (- n 1))))))
+  (even? 10))  ; => true
+```
+
+All initialization expressions and the body are evaluated in the same scope, so each binding can refer to any name (including itself and later-defined names).
+
+**Named `let`** is an idiomatic loop form: `(let NAME (bindings...) body...)` creates a procedure named NAME with parameters matching the binding names, then immediately calls it with the initial values. The procedure can call itself (recursively or iteratively) in the body, and all tail calls are optimized:
+
+```scheme
+; Summation loop
+(let loop ((i 0) (acc 0))
+  (if (= i 5)
+    acc
+    (loop (+ i 1) (+ acc i))))
+; => 10
+
+; Factorial with accumulator
+(let fact ((n 5) (acc 1))
+  (if (= n 0)
+    acc
+    (fact (- n 1) (* n acc))))
+; => 120
+```
+
+Both forms support tail-call optimization, so loops and recursive functions run in bounded stack space even for large iteration counts.
+
 ### Macros
 
 Macros are unhygienic, defmacro-style (like Scheme's non-hygienic macros).

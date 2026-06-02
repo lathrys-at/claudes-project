@@ -419,25 +419,108 @@ def _seval_internal(expr, env):
 
             elif head == "let":
                 if len(expr) < 2:
-                    raise EvalError(f"let requires at least 1 argument (bindings list), got {len(expr) - 1}")
+                    raise EvalError(f"let requires at least 1 argument, got {len(expr) - 1}")
+
+                # Determine if this is a named let or ordinary let
+                # Named let: (let NAME (bindings...) body...)
+                # Ordinary let: (let (bindings...) body...)
+                if isinstance(expr[1], Symbol):
+                    # Named let form
+                    loop_name = expr[1]
+                    if len(expr) < 3:
+                        raise EvalError(f"named let requires a bindings list, got {len(expr) - 1}")
+                    bindings = expr[2]
+                    body = expr[3:]
+
+                    if not isinstance(bindings, PebbleList):
+                        raise EvalError(f"let: bindings must be a list, got {type(bindings).__name__}")
+
+                    # Parse bindings and evaluate inits in the current environment
+                    var_names = []
+                    init_values = []
+                    for binding in bindings:
+                        if not isinstance(binding, PebbleList) or len(binding) != 2:
+                            raise EvalError(f"let: each binding must be a [name value] pair")
+                        name, value_expr = binding[0], binding[1]
+                        if not isinstance(name, Symbol):
+                            raise EvalError(f"let: binding name must be a symbol, got {type(name).__name__}")
+                        var_names.append(name)
+                        init_values.append(_trampoline(_seval_internal(value_expr, env)))
+
+                    # Create a new environment where we'll bind the loop name to itself
+                    named_let_env = Environment(parent=env)
+
+                    # Create a procedure with the parameter names
+                    # The body of the procedure is the named let body
+                    proc = Procedure(var_names, body, named_let_env, rest=None)
+
+                    # Bind the loop name to the procedure in its own environment
+                    # This allows the loop to call itself
+                    named_let_env.define(loop_name, proc)
+
+                    # Apply the procedure immediately with the evaluated init values
+                    return _apply_proc_internal(proc, init_values)
+
+                else:
+                    # Ordinary let form: (let (bindings...) body...)
+                    bindings = expr[1]
+                    if not isinstance(bindings, PebbleList):
+                        raise EvalError(f"let: bindings must be a list, got {type(bindings).__name__}")
+                    # Evaluate each binding in the current env
+                    binding_dict = {}
+                    for binding in bindings:
+                        if not isinstance(binding, PebbleList) or len(binding) != 2:
+                            raise EvalError(f"let: each binding must be a [name value] pair")
+                        name, value_expr = binding[0], binding[1]
+                        if not isinstance(name, Symbol):
+                            raise EvalError(f"let: binding name must be a symbol, got {type(name).__name__}")
+                        binding_dict[name] = _trampoline(_seval_internal(value_expr, env))
+
+                    # Create new env, define the bindings, evaluate body
+                    new_env = Environment(parent=env)
+                    for name, value in binding_dict.items():
+                        new_env.define(name, value)
+
+                    body = expr[2:]
+                    if len(body) == 0:
+                        return NIL
+                    # Process body: only the last form is in tail position
+                    for form in body[:-1]:
+                        _trampoline(_seval_internal(form, new_env))
+                    # The last form is in tail position
+                    return _TailCall(body[-1], new_env)
+
+            elif head == "letrec":
+                if len(expr) < 2:
+                    raise EvalError(f"letrec requires at least 1 argument (bindings list), got {len(expr) - 1}")
                 bindings = expr[1]
                 if not isinstance(bindings, PebbleList):
-                    raise EvalError(f"let: bindings must be a list, got {type(bindings).__name__}")
-                # Evaluate each binding in the current env
+                    raise EvalError(f"letrec: bindings must be a list, got {type(bindings).__name__}")
+
+                # Create a new environment (child of current env)
+                new_env = Environment(parent=env)
+
+                # Parse bindings and create empty slots for all names
                 binding_dict = {}
                 for binding in bindings:
                     if not isinstance(binding, PebbleList) or len(binding) != 2:
-                        raise EvalError(f"let: each binding must be a [name value] pair")
+                        raise EvalError(f"letrec: each binding must be a [name value] pair")
                     name, value_expr = binding[0], binding[1]
                     if not isinstance(name, Symbol):
-                        raise EvalError(f"let: binding name must be a symbol, got {type(name).__name__}")
-                    binding_dict[name] = _trampoline(_seval_internal(value_expr, env))
+                        raise EvalError(f"letrec: binding name must be a symbol, got {type(name).__name__}")
+                    binding_dict[name] = value_expr
 
-                # Create new env, define the bindings, evaluate body
-                new_env = Environment(parent=env)
-                for name, value in binding_dict.items():
+                # Define all names in the new environment (with placeholder values, which will be updated)
+                # This allows forward references in the inits
+                for name in binding_dict:
+                    new_env.define(name, None)
+
+                # Evaluate each init expression in the shared new environment and bind it
+                for name, value_expr in binding_dict.items():
+                    value = _trampoline(_seval_internal(value_expr, new_env))
                     new_env.define(name, value)
 
+                # Evaluate the body in the shared environment
                 body = expr[2:]
                 if len(body) == 0:
                     return NIL
