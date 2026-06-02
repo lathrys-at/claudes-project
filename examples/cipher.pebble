@@ -1,0 +1,37 @@
+;;; Caesar cipher / ROT13 text transformer
+;;; Shifts alphabetic characters while preserving case and leaving non-letters unchanged.
+
+(define (shift-char char shift)
+  "Shift a single character by shift positions within its case, wrapping around."
+  (let ((code (char->integer char)))
+    (cond
+      ; lowercase letter (97-122)
+      ((and (>= code 97) (<= code 122))
+       (let ((shifted (+ (- code 97) shift)))
+         (integer->char (+ 97 (modulo shifted 26)))))
+      ; uppercase letter (65-90)
+      ((and (>= code 65) (<= code 90))
+       (let ((shifted (+ (- code 65) shift)))
+         (integer->char (+ 65 (modulo shifted 26)))))
+      ; non-letter: return unchanged
+      (else char))))
+
+(define (caesar-encrypt text shift)
+  "Encrypt text using Caesar cipher with given shift (modulo 26)."
+  (let ((normalized-shift (modulo shift 26)))
+    (let ((chars (string->list text)))
+      (let ((shifted (map (lambda (c) (shift-char c normalized-shift)) chars)))
+        (list->string shifted)))))
+
+(define (caesar-decrypt text shift)
+  "Decrypt text using Caesar cipher with given shift (modulo 26)."
+  (let ((normalized-shift (modulo shift 26)))
+    (caesar-encrypt text (- 26 normalized-shift))))
+
+(define (rot13 text)
+  "Apply ROT13 transformation (Caesar cipher with shift 13)."
+  (caesar-encrypt text 13))
+
+; Demo output
+(displayln (caesar-encrypt "Hello, World!" 3))
+(displayln (rot13 "Hello"))
