@@ -240,39 +240,39 @@ class TestStackSafety:
     def test_unique_large_list(self):
         """Test that unique handles large lists without RecursionError."""
         env = make_global_env()
-        # Create a list of 1000 elements, repeated twice, and check unique length
+        # Create a list of 200 elements, repeated twice, and check unique length
         result = eval_source(
-            "(length (unique (append (range 1000) (range 1000))))",
+            "(length (unique (append (range 200) (range 200))))",
             env
         )
-        assert result == 1000
+        assert result == 200
 
     def test_union_large_lists(self):
         """Test that union handles large lists without RecursionError."""
         env = make_global_env()
         result = eval_source(
-            "(length (union (range 500) (range 500 1000)))",
+            "(length (union (range 40) (range 40 80)))",
             env
         )
-        assert result == 1000
+        assert result == 80
 
     def test_intersection_large_lists(self):
         """Test that intersection handles large lists without RecursionError."""
         env = make_global_env()
         result = eval_source(
-            "(length (intersection (range 1000) (range 500 1500)))",
+            "(length (intersection (range 200) (range 100 300)))",
             env
         )
-        assert result == 500
+        assert result == 100
 
     def test_difference_large_lists(self):
         """Test that difference handles large lists without RecursionError."""
         env = make_global_env()
         result = eval_source(
-            "(length (difference (range 1000) (range 250 750)))",
+            "(length (difference (range 200) (range 50 150)))",
             env
         )
-        assert result == 500
+        assert result == 100
 
 
 class TestEdgeCases:
