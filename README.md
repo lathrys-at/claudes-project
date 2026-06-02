@@ -634,6 +634,10 @@ Pebble includes a lazy streams library built on `delay`/`force` promises. A lazy
 **String functions:**
 - `string-join` — join a list of strings with separator
 - `string-split` — split string by separator into a list of substrings
+- `string-reverse` — return string with characters in reverse order
+- `capitalize` — return string with first character uppercased and rest unchanged
+- `string-pad-left` — pad string on the left to a given width with a fill character
+- `string-pad-right` — pad string on the right to a given width with a fill character
 - `flatten` — flatten arbitrarily-nested lists
 
 **I/O:**

@@ -657,6 +657,42 @@
                 (string-append current-part (substring s 0 1)))))))
       (split-helper s sep nil ""))))
 
+; string-reverse: (string-reverse s) returns s with its characters in reverse order
+(define (string-reverse s)
+  (list->string (reverse (string->list s))))
+
+; capitalize: (capitalize s) returns s with its FIRST character uppercased and the rest UNCHANGED
+(define (capitalize s)
+  (if (= (string-length s) 0)
+    ""
+    (string-append
+      (char-upcase (substring s 0 1))
+      (substring s 1 (string-length s)))))
+
+; string-pad-left: (string-pad-left s width fill) pads s on the LEFT with fill (1-char string) to width
+; If string length is >= width, returns s unchanged
+; Raises EvalError if fill is not a string of length exactly 1
+(define (string-pad-left s width fill)
+  (if (not (= (string-length fill) 1))
+    (error "string-pad-left: fill must be a string of length 1")
+    (let ((s-len (string-length s))
+          (pad-count (- width (string-length s))))
+      (if (<= pad-count 0)
+        s
+        (string-append (string-repeat fill pad-count) s)))))
+
+; string-pad-right: (string-pad-right s width fill) pads s on the RIGHT with fill (1-char string) to width
+; If string length is >= width, returns s unchanged
+; Raises EvalError if fill is not a string of length exactly 1
+(define (string-pad-right s width fill)
+  (if (not (= (string-length fill) 1))
+    (error "string-pad-right: fill must be a string of length 1")
+    (let ((s-len (string-length s))
+          (pad-count (- width (string-length s))))
+      (if (<= pad-count 0)
+        s
+        (string-append s (string-repeat fill pad-count))))))
+
 ; ===== IO FUNCTIONS =====
 
 ; displayln: displays value followed by newline, returns nil
