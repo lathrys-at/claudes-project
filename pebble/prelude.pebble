@@ -737,3 +737,77 @@
 ; Rejects ordinary vectors and lists that might resemble the internal structure
 (define (promise? x)
   (and (vector? x) (= (vector-length x) 3) (= (vector-ref x 0) promise-tag)))
+
+; ===== LAZY STREAMS =====
+; A lazy stream is either nil (empty) or a two-element list (list HEAD (delay REST))
+; where HEAD is the first element and REST is a promise wrapping the rest of the stream.
+
+; stream-cons: MACRO that creates a stream with HEAD (evaluated now) and TAIL (delayed)
+; Returns (list HEAD (delay TAIL))
+; MUST be a macro so TAIL is not evaluated until stream-cdr forces it
+(define-macro (stream-cons head tail)
+  `(list ,head (delay ,tail)))
+
+; stream-car: returns the head (first element) of a stream
+; Assumes s is a non-empty stream (list HEAD promise)
+(define (stream-car s)
+  (car s))
+
+; stream-cdr: returns the rest of the stream by forcing the delayed tail
+; Takes a non-empty stream and returns the next stream
+(define (stream-cdr s)
+  (force (cadr s)))
+
+; stream-null?: returns true iff s is the empty stream (the empty list)
+(define (stream-null? s)
+  (null? s))
+
+; stream-take: returns an ordinary Pebble list of the first n elements of stream s
+; Terminates when n reaches 0 or when stream becomes empty
+; (stream-take s 0) returns the empty list
+(define (stream-take s n)
+  (if (= n 0)
+    nil
+    (if (null? s)
+      nil
+      (cons (stream-car s) (stream-take (stream-cdr s) (- n 1))))))
+
+; stream-ref: returns the i-th element (0-indexed) of the stream
+; Advances through the stream i times to reach the desired element
+(define (stream-ref s i)
+  (if (= i 0)
+    (stream-car s)
+    (stream-ref (stream-cdr s) (- i 1))))
+
+; stream-map: returns a new stream lazily applying f to each element
+; Does not apply f until elements are accessed via stream-cdr
+(define (stream-map f s)
+  (if (null? s)
+    nil
+    (stream-cons (f (stream-car s)) (stream-map f (stream-cdr s)))))
+
+; stream-filter: returns a stream of the elements satisfying pred (lazily)
+; Skips elements that do not satisfy pred
+(define (stream-filter pred s)
+  (if (null? s)
+    nil
+    (let ((head (stream-car s))
+          (tail (stream-cdr s)))
+      (if (pred head)
+        (stream-cons head (stream-filter pred tail))
+        (stream-filter pred tail)))))
+
+; stream-zip-with: returns a stream whose i-th element is (f a_i b_i)
+; for the i-th elements of s1 and s2
+; STOPS when EITHER stream is empty (takes the shorter length)
+(define (stream-zip-with f s1 s2)
+  (if (or (null? s1) (null? s2))
+    nil
+    (stream-cons (f (stream-car s1) (stream-car s2))
+                 (stream-zip-with f (stream-cdr s1) (stream-cdr s2)))))
+
+; integers-from: returns the INFINITE stream n, n+1, n+2, ...
+; Works because the tail is delayed: the recursive call is inside the delay,
+; so the stream builds lazily without infinite recursion
+(define (integers-from n)
+  (stream-cons n (integers-from (+ n 1))))

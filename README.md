@@ -558,6 +558,25 @@ Pebble includes a standard library written in the Pebble language itself, automa
   (promise? 5)              ; false
   ```
 
+**Lazy streams:**
+Pebble includes a lazy streams library built on `delay`/`force` promises. A lazy stream is either `nil` (empty) or a two-element list `(list HEAD (delay REST))` where `HEAD` is the first element and `REST` is a promise wrapping the rest of the stream. Streams are evaluated lazily: the tail is not computed until accessed, enabling infinite streams.
+- `stream-cons` — `(stream-cons HEAD TAIL)` is a macro that creates a stream with `HEAD` (evaluated now) and `TAIL` (delayed). Must be a macro so `TAIL` is not eagerly evaluated.
+- `stream-car` — `(stream-car s)` returns the head (first element) of a stream.
+- `stream-cdr` — `(stream-cdr s)` forces the delayed tail and returns the next stream.
+- `stream-null?` — `(stream-null? s)` returns true iff `s` is the empty stream (the empty list).
+- `stream-take` — `(stream-take s n)` returns an ordinary Pebble list of the first `n` elements of stream `s` (or fewer if the stream ends earlier). `(stream-take s 0)` returns the empty list.
+- `stream-ref` — `(stream-ref s i)` returns the i-th element (0-indexed) of the stream, advancing through the stream as needed.
+- `stream-map` — `(stream-map f s)` returns a new stream lazily applying `f` to each element of `s`.
+- `stream-filter` — `(stream-filter pred s)` returns a stream of the elements of `s` that satisfy the predicate `pred` (lazily).
+- `stream-zip-with` — `(stream-zip-with f s1 s2)` returns a stream whose i-th element is `(f a_i b_i)` for the i-th elements of `s1` and `s2`, stopping when either stream is empty.
+- `integers-from` — `(integers-from n)` returns the infinite stream `n, n+1, n+2, ...`. Works because the tail is delayed inside the promise, so the stream builds lazily without infinite recursion. Example:
+  ```lisp
+  (stream-take (integers-from 1) 5)              ; => (1 2 3 4 5)
+  (stream-take (stream-map (lambda (x) (* x x)) (integers-from 1)) 5)  ; => (1 4 9 16 25)
+  (stream-take (stream-filter even? (integers-from 1)) 4)             ; => (2 4 6 8)
+  (stream-take (stream-zip-with + (integers-from 1) (integers-from 100)) 3)  ; => (101 103 105)
+  ```
+
 **String functions:**
 - `string-join` — join a list of strings with separator
 - `string-split` — split string by separator into a list of substrings
