@@ -1163,3 +1163,43 @@
           ; Last character: always add
           (+ acc current-val)))))
   (sum-helper s 0 0))
+
+; ===== RUN-LENGTH ENCODING =====
+
+; rle-encode: (rle-encode lst) returns the run-length encoding of lst
+; Returns a list of two-element lists (element count), where each maximal run of
+; consecutive equal elements (compared with =) becomes one (element count) pair, in order.
+; Stack-safe implementation using tail recursion with accumulator.
+(define (rle-encode lst)
+  (define (encode-helper lst current-elem current-count acc)
+    (if (null? lst)
+      ; End of list: emit the current run if any, then reverse accumulator
+      (if (= current-count 0)
+        (reverse acc)
+        (reverse (cons (list current-elem current-count) acc)))
+      ; Process the next element
+      (let ((next-elem (car lst)))
+        (if (= next-elem current-elem)
+          ; Same as current: increment count
+          (encode-helper (cdr lst) current-elem (+ current-count 1) acc)
+          ; Different from current: emit the current run (if any) and start a new run
+          (if (= current-count 0)
+            ; First element
+            (encode-helper (cdr lst) next-elem 1 acc)
+            ; Not first: emit current run and start new
+            (encode-helper (cdr lst) next-elem 1 (cons (list current-elem current-count) acc)))))))
+  (if (null? lst)
+    nil
+    (encode-helper (cdr lst) (car lst) 1 nil)))
+
+; rle-decode: (rle-decode encoded) returns the original list from a run-length encoding
+; For each (element count) pair, produces count copies of element, concatenated in order.
+; Uses foldl to accumulate results and append runs.
+(define (rle-decode encoded)
+  (foldl
+    (lambda (acc pair)
+      (let ((elem (car pair))
+            (count (cadr pair)))
+        (append acc (repeat elem count))))
+    nil
+    encoded))

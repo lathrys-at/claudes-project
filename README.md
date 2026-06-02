@@ -580,6 +580,10 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `repeat` — returns a list with element repeated n times
 - `assoc` — lookup key in association list
 
+**Run-length encoding:**
+- `rle-encode` — `(rle-encode lst)` returns the run-length encoding of a list, converting each maximal run of consecutive equal elements into a `(element count)` pair. The encoding is a list of such pairs in order, preserving element positions. `(rle-encode nil)` returns the empty list. Stack-safe implementation using accumulator-based tail recursion. Example: `(rle-encode (list 1 1 1 2 3 3))` → `((1 3) (2 1) (3 2))`
+- `rle-decode` — `(rle-decode encoded)` returns the original list from a run-length encoding, expanding each `(element count)` pair into `count` copies of `element`, concatenated in order. `(rle-decode nil)` returns the empty list. Example: `(rle-decode (list (list 1 3) (list 2 1) (list 3 2)))` → `(1 1 1 2 3 3)`. Works with any elements comparable via `=`, including strings and symbols.
+
 **Set operations on lists:**
 - `unique` — `(unique lst)` returns a list with duplicate elements removed, preserving the order of first appearance of each element
 - `union` — `(union a b)` returns the set union of two lists: distinct elements from both, with elements from `a` first (in their original order), followed by elements from `b` not in `a`
