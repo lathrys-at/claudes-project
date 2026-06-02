@@ -1,0 +1,127 @@
+;;; Binary Min-Heap (Priority Queue) backed by a mutable vector
+;;; A min-heap stores elements in a mutable vector where the root (index 0)
+;;; is always the minimum element. For index i:
+;;; - Parent: (quotient (- i 1) 2)
+;;; - Left child: (+ (* 2 i) 1)
+;;; - Right child: (+ (* 2 i) 2)
+
+; make-heap: returns an empty mutable vector to use as a heap
+(define (make-heap)
+  (make-vector 0))
+
+; heap-size: returns the number of elements in the heap
+(define (heap-size h)
+  (vector-length h))
+
+; heap-empty?: returns true if the heap has no elements
+(define (heap-empty? h)
+  (= (heap-size h) 0))
+
+; Get parent index of element at index i
+(define (heap-parent-idx i)
+  (quotient (- i 1) 2))
+
+; Get left child index of element at index i
+(define (heap-left-child-idx i)
+  (+ (* 2 i) 1))
+
+; Get right child index of element at index i
+(define (heap-right-child-idx i)
+  (+ (* 2 i) 2))
+
+; Get element at index, or return +inf as sentinel for out of bounds
+(define (heap-get-or-inf h i)
+  (if (< i (heap-size h))
+    (vector-ref h i)
+    (expt 10 999)))
+
+; Sift up: bubble an element up to restore heap property
+; Element at index i is smaller than parent, so swap and recurse
+(define (heap-sift-up h i)
+  (if (= i 0)
+    nil
+    (let ((parent-idx (heap-parent-idx i))
+          (elem (vector-ref h i))
+          (parent (vector-ref h (heap-parent-idx i))))
+      (if (< elem parent)
+        (begin
+          (vector-set! h i parent)
+          (vector-set! h parent-idx elem)
+          (heap-sift-up h parent-idx))
+        nil))))
+
+; Sift down: bubble an element down to restore heap property
+; Element at index i is larger than one or both children, so swap with smaller child and recurse
+(define (heap-sift-down h i)
+  (let ((left-idx (heap-left-child-idx i))
+        (right-idx (heap-right-child-idx i))
+        (elem (vector-ref h i)))
+    (let ((left (heap-get-or-inf h left-idx))
+          (right (heap-get-or-inf h right-idx)))
+      (cond
+        ; No children
+        ((and (>= left-idx (heap-size h)) (>= right-idx (heap-size h)))
+         nil)
+        ; Only left child, and it's smaller than element
+        ((and (< left-idx (heap-size h)) (>= right-idx (heap-size h)))
+         (if (< left elem)
+           (begin
+             (vector-set! h i left)
+             (vector-set! h left-idx elem)
+             (heap-sift-down h left-idx))
+           nil))
+        ; Both children exist
+        ((and (< left-idx (heap-size h)) (< right-idx (heap-size h)))
+         (let ((smaller-idx (if (< left right) left-idx right-idx))
+               (smaller (if (< left right) left right)))
+           (if (< smaller elem)
+             (begin
+               (vector-set! h i smaller)
+               (vector-set! h smaller-idx elem)
+               (heap-sift-down h smaller-idx))
+             nil)))
+        (else nil)))))
+
+; heap-insert!: insert element x into heap h, mutating h
+; Appends x to the end and sifts up
+(define (heap-insert! h x)
+  (vector-push! h x)
+  (heap-sift-up h (- (heap-size h) 1)))
+
+; heap-peek-min: returns the minimum element without removing it
+; Raises EvalError if heap is empty
+(define (heap-peek-min h)
+  (if (heap-empty? h)
+    (error "heap-peek-min: empty heap")
+    (vector-ref h 0)))
+
+; heap-pop-min!: removes and returns the minimum element
+; Moves last element to root, shrinks vector, sifts down
+; Raises EvalError if heap is empty
+(define (heap-pop-min! h)
+  (if (heap-empty? h)
+    (error "heap-pop-min!: empty heap")
+    (let ((min-elem (vector-ref h 0)))
+      (if (= (heap-size h) 1)
+        (begin
+          (vector-pop! h)
+          min-elem)
+        (begin
+          (let ((last-elem (vector-pop! h)))
+            (vector-set! h 0 last-elem)
+            (heap-sift-down h 0))
+          min-elem)))))
+
+; heapsort: returns a sorted list of numbers using a heap
+; Builds a heap from the input list, then pops all elements
+(define (heapsort lst)
+  (define (heapsort-helper h result)
+    (if (heap-empty? h)
+      (reverse result)
+      (heapsort-helper h (cons (heap-pop-min! h) result))))
+  (let ((h (make-heap)))
+    (for-each (lambda (x) (heap-insert! h x)) lst)
+    (heapsort-helper h nil)))
+
+; Demo: sort (5 3 8 1 9 2 7) -> (1 2 3 5 7 8 9)
+(displayln (heapsort (list 5 3 8 1 9 2 7)))

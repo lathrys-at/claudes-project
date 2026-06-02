@@ -91,6 +91,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/streams.pebble` — Lazy infinite streams library built on `delay`/`force` promises
 - `examples/primes.pebble` — Infinite stream of primes via a lazy Sieve of Eratosthenes
 - `examples/brainfuck.pebble` — Brainfuck interpreter using a mutable-vector memory tape
+- `examples/heap.pebble` — Binary min-heap (priority queue) backed by a mutable vector with heapsort
 
 Run any example directly:
 
@@ -98,7 +99,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_hanoi.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, and `tests/test_brainfuck.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_hanoi.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, and `tests/test_heap.py`.
 
 ## Design
 
