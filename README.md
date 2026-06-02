@@ -452,6 +452,15 @@ Pebble provides a comprehensive set of primitive builtin functions implemented i
 - `string->symbol`, `symbol->string` — conversions
 - `number->string`, `string->number` — numeric conversions
 
+**Character Classification and Conversion:**
+- `char-numeric?` — test if character is a decimal digit
+- `char-alpha?` — test if character is an alphabetic character
+- `char-whitespace?` — test if character is a whitespace character (space, tab, newline, etc.)
+- `char-upcase` — convert character to uppercase (non-letters unchanged)
+- `char-downcase` — convert character to lowercase (non-letters unchanged)
+- `char->integer` — get Unicode code point of a character
+- `integer->char` — create character from Unicode code point
+
 **Hash Map Operations:**
 - `make-hash` — create hash map
 - `hash-set` — add/update key (immutable)

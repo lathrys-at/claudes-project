@@ -667,6 +667,71 @@ def builtin_table(apply_proc):
                 raise EvalError(f"list->string: all elements must be strings, got {type(elem).__name__}")
         return "".join(lst)
 
+    # ===== CHARACTER CLASSIFICATION AND CONVERSION =====
+
+    def builtin_char_numeric_p(c):
+        """(char-numeric? c) -> True iff c is a decimal digit character."""
+        if not isinstance(c, str) or isinstance(c, Symbol):
+            raise EvalError(f"char-numeric?: argument must be a character (string), got {type(c).__name__}")
+        if len(c) != 1:
+            raise EvalError(f"char-numeric?: argument must be a character (length 1), got length {len(c)}")
+        return c.isdigit()
+
+    def builtin_char_alpha_p(c):
+        """(char-alpha? c) -> True iff c is an alphabetic character."""
+        if not isinstance(c, str) or isinstance(c, Symbol):
+            raise EvalError(f"char-alpha?: argument must be a character (string), got {type(c).__name__}")
+        if len(c) != 1:
+            raise EvalError(f"char-alpha?: argument must be a character (length 1), got length {len(c)}")
+        return c.isalpha()
+
+    def builtin_char_whitespace_p(c):
+        """(char-whitespace? c) -> True iff c is a whitespace character."""
+        if not isinstance(c, str) or isinstance(c, Symbol):
+            raise EvalError(f"char-whitespace?: argument must be a character (string), got {type(c).__name__}")
+        if len(c) != 1:
+            raise EvalError(f"char-whitespace?: argument must be a character (length 1), got length {len(c)}")
+        return c.isspace()
+
+    def builtin_char_upcase(c):
+        """(char-upcase c) -> uppercase version of c, or c unchanged if not a letter."""
+        if not isinstance(c, str) or isinstance(c, Symbol):
+            raise EvalError(f"char-upcase: argument must be a character (string), got {type(c).__name__}")
+        if len(c) != 1:
+            raise EvalError(f"char-upcase: argument must be a character (length 1), got length {len(c)}")
+        return c.upper()
+
+    def builtin_char_downcase(c):
+        """(char-downcase c) -> lowercase version of c, or c unchanged if not a letter."""
+        if not isinstance(c, str) or isinstance(c, Symbol):
+            raise EvalError(f"char-downcase: argument must be a character (string), got {type(c).__name__}")
+        if len(c) != 1:
+            raise EvalError(f"char-downcase: argument must be a character (length 1), got length {len(c)}")
+        return c.lower()
+
+    def builtin_char_to_integer(c):
+        """(char->integer c) -> Unicode code point of c as an integer."""
+        if not isinstance(c, str) or isinstance(c, Symbol):
+            raise EvalError(f"char->integer: argument must be a character (string), got {type(c).__name__}")
+        if len(c) != 1:
+            raise EvalError(f"char->integer: argument must be a character (length 1), got length {len(c)}")
+        return ord(c)
+
+    def builtin_integer_to_char(n):
+        """(integer->char n) -> character (length-1 string) for Unicode code point n.
+
+        n must be an integer in the valid Unicode range (0 to 1114111).
+        Raises EvalError if n is not an integer, a boolean, negative, or out of range.
+        """
+        if not isinstance(n, int) or isinstance(n, bool):
+            raise EvalError(f"integer->char: argument must be an integer, got {type(n).__name__}")
+        if n < 0 or n > 0x10FFFF:  # 1114111 is the max Unicode code point
+            raise EvalError(f"integer->char: code point out of valid Unicode range (0-1114111), got {n}")
+        try:
+            return chr(n)
+        except ValueError:
+            raise EvalError(f"integer->char: invalid code point {n}")
+
     # ===== IO =====
 
     def builtin_print(*args):
@@ -999,6 +1064,13 @@ def builtin_table(apply_proc):
         "char-at": builtin_char_at,
         "string->list": builtin_string_to_list,
         "list->string": builtin_list_to_string,
+        "char-numeric?": builtin_char_numeric_p,
+        "char-alpha?": builtin_char_alpha_p,
+        "char-whitespace?": builtin_char_whitespace_p,
+        "char-upcase": builtin_char_upcase,
+        "char-downcase": builtin_char_downcase,
+        "char->integer": builtin_char_to_integer,
+        "integer->char": builtin_integer_to_char,
         "print": builtin_print,
         "display": builtin_display,
         "newline": builtin_newline,
