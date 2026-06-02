@@ -81,6 +81,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/calculator.pebble` — Arithmetic expression evaluator with operator precedence and parentheses
 - `examples/metacircular.pebble` — A tiny Lisp interpreter written in Pebble, supporting lambda, closures, recursion, and define
 - `examples/life.pebble` — Conway's Game of Life on a mutable-vector grid
+- `examples/simplify.pebble` — Symbolic algebra simplifier using `match` pattern-matching to rewrite arithmetic expressions
 
 Run any example directly:
 

@@ -1,0 +1,59 @@
+;;; Symbolic algebra simplifier using pattern matching
+;;; Simplifies arithmetic expressions: integers, symbols, +, *, -
+
+(define (simplify expr)
+  (match expr
+    ; Addition: (+ A B)
+    (('+ a b)
+     (let ((a-simp (simplify a))
+           (b-simp (simplify b)))
+       (cond
+         ; Both are numbers: constant fold
+         ((and (number? a-simp) (number? b-simp))
+          (+ a-simp b-simp))
+         ; Left is 0: return right
+         ((= a-simp 0) b-simp)
+         ; Right is 0: return left
+         ((= b-simp 0) a-simp)
+         ; Otherwise: rebuild the form
+         (else (list '+ a-simp b-simp)))))
+
+    ; Multiplication: (* A B)
+    (('* a b)
+     (let ((a-simp (simplify a))
+           (b-simp (simplify b)))
+       (cond
+         ; Either is 0: return 0
+         ((= a-simp 0) 0)
+         ((= b-simp 0) 0)
+         ; Both are numbers: constant fold
+         ((and (number? a-simp) (number? b-simp))
+          (* a-simp b-simp))
+         ; Left is 1: return right
+         ((= a-simp 1) b-simp)
+         ; Right is 1: return left
+         ((= b-simp 1) a-simp)
+         ; Otherwise: rebuild the form
+         (else (list '* a-simp b-simp)))))
+
+    ; Subtraction: (- A B)
+    (('- a b)
+     (let ((a-simp (simplify a))
+           (b-simp (simplify b)))
+       (cond
+         ; Both are numbers: constant fold
+         ((and (number? a-simp) (number? b-simp))
+          (- a-simp b-simp))
+         ; Right is 0: return left
+         ((= b-simp 0) a-simp)
+         ; Otherwise: rebuild the form
+         (else (list '- a-simp b-simp)))))
+
+    ; Atom: number or symbol - return as-is
+    (x x)))
+
+; Test cases: demonstrate simplification
+(displayln (simplify '(+ x 0)))
+(displayln (simplify '(* x 0)))
+(displayln (simplify '(* (+ x 0) (+ y 0))))
+(displayln (simplify '(+ (* 2 3) (* x 0))))
