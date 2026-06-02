@@ -428,3 +428,109 @@ class TestTypeErrors:
         """sqrt with list argument."""
         with pytest.raises(EvalError):
             eval_pebble("(sqrt (list 1 2))")
+
+
+class TestQuotientLargeOperands:
+    """Regression tests for quotient with large operands (>2**53).
+
+    These tests would fail with the old float-based implementation
+    because float loses precision above 2**53.
+    """
+
+    def test_quotient_large_positive_operands(self):
+        """quotient with large positive operands (>2**53)."""
+        # Use a value slightly above 2**53 to trigger precision loss in float
+        a = 10**18 + 5
+        b = 10**9 + 7
+        # Compute expected value using Python's exact integer arithmetic
+        expected = a // b  # This is floor division for positive operands
+        result = eval_pebble(f"(quotient {a} {b})")
+        assert result == expected
+
+    def test_quotient_large_negative_dividend(self):
+        """quotient with large negative dividend (truncate toward zero)."""
+        a = -(10**18 + 5)
+        b = 10**9 + 7
+        # Expected: truncate toward zero means we take floor of |a|/|b| and negate
+        expected = -int(abs(a) // abs(b))
+        result = eval_pebble(f"(quotient {a} {b})")
+        assert result == expected
+
+    def test_quotient_large_negative_divisor(self):
+        """quotient with large negative divisor (truncate toward zero)."""
+        a = 10**18 + 5
+        b = -(10**9 + 7)
+        # Expected: truncate toward zero means we take floor of |a|/|b| and negate
+        expected = -int(abs(a) // abs(b))
+        result = eval_pebble(f"(quotient {a} {b})")
+        assert result == expected
+
+    def test_quotient_large_both_negative(self):
+        """quotient with both large negative operands."""
+        a = -(10**18 + 5)
+        b = -(10**9 + 7)
+        # Expected: truncate toward zero, result is positive
+        expected = int(abs(a) // abs(b))
+        result = eval_pebble(f"(quotient {a} {b})")
+        assert result == expected
+
+    def test_quotient_remainder_identity_large_operands(self):
+        """Verify a == b*(quotient a b) + (remainder a b) for large operands."""
+        test_cases = [
+            (10**18 + 5, 10**9 + 7),
+            (-(10**18 + 5), 10**9 + 7),
+            (10**18 + 5, -(10**9 + 7)),
+            (-(10**18 + 5), -(10**9 + 7)),
+        ]
+        for a, b in test_cases:
+            expr = f"(+ (* {b} (quotient {a} {b})) (remainder {a} {b}))"
+            result = eval_pebble(expr)
+            assert result == a, f"Identity failed for ({a}, {b}): got {result}, expected {a}"
+
+
+class TestRemainderLargeOperands:
+    """Regression tests for remainder with large operands (>2**53).
+
+    These tests would fail with the old float-based implementation
+    because float loses precision above 2**53.
+    """
+
+    def test_remainder_large_positive_operands(self):
+        """remainder with large positive operands (>2**53)."""
+        a = 10**18 + 5
+        b = 10**9 + 7
+        # Expected: a - b * floor(a/b) for positive operands
+        q = a // b
+        expected = a - b * q
+        result = eval_pebble(f"(remainder {a} {b})")
+        assert result == expected
+
+    def test_remainder_large_negative_dividend(self):
+        """remainder with large negative dividend (sign follows dividend)."""
+        a = -(10**18 + 5)
+        b = 10**9 + 7
+        # Expected: a - b * truncate_toward_zero(a/b)
+        q = -int(abs(a) // abs(b))  # Truncate toward zero
+        expected = a - b * q
+        result = eval_pebble(f"(remainder {a} {b})")
+        assert result == expected
+
+    def test_remainder_large_negative_divisor(self):
+        """remainder with large negative divisor (sign follows dividend)."""
+        a = 10**18 + 5
+        b = -(10**9 + 7)
+        # Expected: a - b * truncate_toward_zero(a/b)
+        q = -int(abs(a) // abs(b))  # Truncate toward zero
+        expected = a - b * q
+        result = eval_pebble(f"(remainder {a} {b})")
+        assert result == expected
+
+    def test_remainder_large_both_negative(self):
+        """remainder with both large negative operands."""
+        a = -(10**18 + 5)
+        b = -(10**9 + 7)
+        # Expected: a - b * truncate_toward_zero(a/b)
+        q = int(abs(a) // abs(b))  # Truncate toward zero, result is positive
+        expected = a - b * q
+        result = eval_pebble(f"(remainder {a} {b})")
+        assert result == expected

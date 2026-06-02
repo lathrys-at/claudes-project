@@ -70,8 +70,14 @@ def builtin_table(apply_proc):
             raise EvalError(f"quotient: second argument must be an integer, got {type(b).__name__}")
         if b == 0:
             raise EvalError("division by zero")
-        # Truncate toward zero
-        return int(a / b)
+        # Truncate toward zero using exact integer arithmetic.
+        # Python's // operator does floor division, so we use abs() and adjust sign.
+        abs_a, abs_b = abs(a), abs(b)
+        q = abs_a // abs_b
+        # Negate if signs differ
+        if (a < 0) != (b < 0):
+            q = -q
+        return q
 
     def builtin_remainder(a, b):
         """(remainder a b) -> remainder of truncating division.
@@ -86,7 +92,12 @@ def builtin_table(apply_proc):
             raise EvalError(f"remainder: second argument must be an integer, got {type(b).__name__}")
         if b == 0:
             raise EvalError("division by zero")
-        q = int(a / b)  # Truncate toward zero
+        # Use exact integer arithmetic: compute quotient, then remainder = a - b * q
+        abs_a, abs_b = abs(a), abs(b)
+        q = abs_a // abs_b
+        # Negate q if signs differ
+        if (a < 0) != (b < 0):
+            q = -q
         return a - b * q
 
     def builtin_gcd(*args):
