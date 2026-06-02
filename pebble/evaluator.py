@@ -791,6 +791,8 @@ def apply_proc(proc, args):
 
 
 _prelude_cache = None
+_template_env_with_prelude = None
+_template_env_builtins_only = None
 
 def _load_prelude():
     """Load and parse the prelude source, caching the result.
@@ -814,6 +816,61 @@ def _load_prelude():
     return _prelude_cache
 
 
+def _build_builtins_only_env():
+    """Build a template environment with only primitive builtins.
+
+    Returns:
+        An Environment with all primitive builtins defined.
+    """
+    from pebble.builtins import builtin_table
+
+    env = Environment()
+    for name, fn in builtin_table(apply_proc).items():
+        env.define(Symbol(name), fn)
+    return env
+
+
+def _build_template_env_with_prelude():
+    """Build the template environment with builtins and prelude evaluated.
+
+    This is called once and cached at module level.
+    Returns an Environment with all builtins and prelude definitions.
+    """
+    # Start with builtins-only template
+    template_env = _build_builtins_only_env()
+
+    # Evaluate all prelude forms into it
+    prelude_forms = _load_prelude()
+    for form in prelude_forms:
+        seval(form, template_env)
+
+    return template_env
+
+
+def _get_template_env_with_prelude():
+    """Get or lazily build the template environment with prelude.
+
+    Returns:
+        The cached template Environment.
+    """
+    global _template_env_with_prelude
+    if _template_env_with_prelude is None:
+        _template_env_with_prelude = _build_template_env_with_prelude()
+    return _template_env_with_prelude
+
+
+def _get_template_env_builtins_only():
+    """Get or lazily build the template environment with builtins only.
+
+    Returns:
+        The cached template Environment.
+    """
+    global _template_env_builtins_only
+    if _template_env_builtins_only is None:
+        _template_env_builtins_only = _build_builtins_only_env()
+    return _template_env_builtins_only
+
+
 def make_global_env(load_prelude=True) -> Environment:
     """Create the global environment with primitive builtins.
 
@@ -823,20 +880,23 @@ def make_global_env(load_prelude=True) -> Environment:
 
     Returns:
         An Environment with starter builtins defined, and optionally prelude definitions.
+        Each call returns a NEW, INDEPENDENT environment.
     """
-    # Lazy import to avoid circular dependency
-    from pebble.builtins import builtin_table
-
-    env = Environment()
-    for name, fn in builtin_table(apply_proc).items():
-        env.define(Symbol(name), fn)
-
     if load_prelude:
-        prelude_forms = _load_prelude()
-        for form in prelude_forms:
-            seval(form, env)
-
-    return env
+        # Get the template with prelude
+        template = _get_template_env_with_prelude()
+        # Create a new environment with shallow-copied bindings
+        # This makes each returned environment independent
+        new_env = Environment()
+        new_env.vars = template.vars.copy()
+        return new_env
+    else:
+        # Get the template with only builtins
+        template = _get_template_env_builtins_only()
+        # Create a new environment with shallow-copied bindings
+        new_env = Environment()
+        new_env.vars = template.vars.copy()
+        return new_env
 
 
 def eval_source(source, env):
