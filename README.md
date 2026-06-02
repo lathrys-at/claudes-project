@@ -431,6 +431,10 @@ Pebble provides a comprehensive set of primitive builtin functions implemented i
 - `vector-length` — vector length
 - `vector->list`, `list->vector` — conversions
 - `vector-push!` — append to vector
+- `vector-map` — apply function to each element and return new vector
+- `vector-for-each` — apply function to each element for side effects
+- `vector-copy` — create an independent copy of a vector
+- `vector-fill!` — fill every element of a vector with a value
 
 **String Operations:**
 - `string-append` — concatenate strings
@@ -524,6 +528,12 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `index-of` — returns zero-based index of first occurrence, or -1
 - `repeat` — returns a list with element repeated n times
 - `assoc` — lookup key in association list
+
+**Vector functions (standard library):**
+- `vector-map` — `(vector-map f v)` returns a new vector where each element is `(f (vector-ref v i))` for index i. The original vector `v` is not modified.
+- `vector-for-each` — `(vector-for-each f v)` applies `(f element)` to each element of `v` in order for side effects, returning `nil`.
+- `vector-copy` — `(vector-copy v)` returns an independent copy of vector `v` with the same elements. Mutating the copy does not affect the original, and vice versa.
+- `vector-fill!` — `(vector-fill! v x)` sets every element of `v` to `x` in place, mutating the vector. The change is visible through all references to `v`, and the function returns `nil`.
 
 **String functions:**
 - `string-join` — join a list of strings with separator

@@ -318,3 +318,175 @@ def test_vector_with_different_types():
     assert result[2] is True
     assert result[3] == NIL
     assert isinstance(result[4], PebbleList)
+
+
+# ===== VECTOR-MAP TESTS =====
+
+def test_vector_map_basic():
+    """Test vector-map with a simple function."""
+    result = eval_expr("(vector->list (vector-map (lambda (x) (* x x)) (vector 1 2 3)))")
+    assert isinstance(result, PebbleList)
+    assert len(result) == 3
+    assert result[0] == 1
+    assert result[1] == 4
+    assert result[2] == 9
+
+
+def test_vector_map_original_unchanged():
+    """Test that vector-map doesn't modify the original vector."""
+    result = eval_expr("""
+    (let ((v (vector 1 2 3)))
+      (vector-map (lambda (x) (* x x)) v)
+      (vector->list v))
+    """)
+    assert result[0] == 1
+    assert result[1] == 2
+    assert result[2] == 3
+
+
+def test_vector_map_empty():
+    """Test vector-map with empty vector."""
+    result = eval_expr("(vector->list (vector-map (lambda (x) x) (vector)))")
+    assert len(result) == 0
+
+
+def test_vector_map_non_vector_error():
+    """Test that vector-map on non-vector raises an error."""
+    with pytest.raises(EvalError):
+        eval_expr("(vector-map (lambda (x) x) (list 1 2 3))")
+
+
+# ===== VECTOR-FOR-EACH TESTS =====
+
+def test_vector_for_each_basic():
+    """Test vector-for-each with side effects."""
+    result = eval_expr("""
+    (let ((sum 0))
+      (vector-for-each (lambda (x) (set! sum (+ sum x))) (vector 1 2 3))
+      sum)
+    """)
+    assert result == 6
+
+
+def test_vector_for_each_returns_nil():
+    """Test that vector-for-each returns nil."""
+    result = eval_expr("(vector-for-each (lambda (x) x) (vector 1 2 3))")
+    assert result == NIL
+
+
+def test_vector_for_each_empty():
+    """Test vector-for-each with empty vector."""
+    result = eval_expr("""
+    (let ((called 0))
+      (vector-for-each (lambda (x) (set! called (+ called 1))) (vector))
+      called)
+    """)
+    assert result == 0
+
+
+def test_vector_for_each_non_vector_error():
+    """Test that vector-for-each on non-vector raises an error."""
+    with pytest.raises(EvalError):
+        eval_expr("(vector-for-each (lambda (x) x) (list 1 2 3))")
+
+
+# ===== VECTOR-COPY TESTS =====
+
+def test_vector_copy_basic():
+    """Test that vector-copy creates a new vector with same elements."""
+    result = eval_expr("""
+    (let ((v (vector 1 2 3)))
+      (= v (vector-copy v)))
+    """)
+    assert result is True
+
+
+def test_vector_copy_independence():
+    """Test that vector-copy produces an independent copy."""
+    result = eval_expr("""
+    (let ((v (vector 1 2 3)))
+      (let ((c (vector-copy v)))
+        (vector-set! c 0 99)
+        (vector-ref v 0)))
+    """)
+    assert result == 1
+
+
+def test_vector_copy_original_independent():
+    """Test that mutating original doesn't affect the copy."""
+    result = eval_expr("""
+    (let ((v (vector 1 2 3)))
+      (let ((c (vector-copy v)))
+        (vector-set! v 1 99)
+        (vector-ref c 1)))
+    """)
+    assert result == 2
+
+
+def test_vector_copy_empty():
+    """Test vector-copy with empty vector."""
+    result = eval_expr("(vector->list (vector-copy (vector)))")
+    assert len(result) == 0
+
+
+def test_vector_copy_non_vector_error():
+    """Test that vector-copy on non-vector raises an error."""
+    with pytest.raises(EvalError):
+        eval_expr("(vector-copy (list 1 2 3))")
+
+
+# ===== VECTOR-FILL! TESTS =====
+
+def test_vector_fill_basic():
+    """Test vector-fill! fills all elements."""
+    result = eval_expr("""
+    (let ((v (make-vector 3)))
+      (vector-fill! v 42)
+      (vector->list v))
+    """)
+    assert result[0] == 42
+    assert result[1] == 42
+    assert result[2] == 42
+
+
+def test_vector_fill_returns_nil():
+    """Test that vector-fill! returns nil."""
+    result = eval_expr("(vector-fill! (vector 1 2 3) 0)")
+    assert result == NIL
+
+
+def test_vector_fill_aliasing():
+    """Test that vector-fill! mutation is visible through aliases."""
+    result = eval_expr("""
+    (let ((v (vector 1 2 3)))
+      (let ((a v))
+        (vector-fill! a 99)
+        (vector-ref v 0)))
+    """)
+    assert result == 99
+
+
+def test_vector_fill_length_unchanged():
+    """Test that vector-fill! preserves vector length."""
+    result = eval_expr("""
+    (let ((v (vector 1 2 3)))
+      (vector-fill! v 0)
+      (vector-length v))
+    """)
+    assert result == 3
+
+
+def test_vector_fill_empty():
+    """Test vector-fill! with empty vector."""
+    result = eval_expr("""
+    (let ((v (vector)))
+      (vector-fill! v 42)
+      (vector-length v))
+    """)
+    assert result == 0
+
+
+def test_vector_fill_non_vector_error():
+    """Test that vector-fill! on non-vector raises an error."""
+    with pytest.raises(EvalError):
+        eval_expr("(vector-fill! (list 1 2 3) 0)")

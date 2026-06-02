@@ -624,6 +624,43 @@
         (match-gen-bindings pat elem-access)
         (match-gen-list-bindings (cdr pats) val-var (+ index 1))))))
 
+; ===== VECTOR FUNCTIONS =====
+
+; vector-map: (vector-map f v) returns a NEW vector where each element i is (f (vector-ref v i))
+; The original vector v is NOT modified.
+(define (vector-map f v)
+  (let ((len (vector-length v)))
+    (let ((result (make-vector len)))
+      (dotimes (i len)
+        (vector-set! result i (f (vector-ref v i))))
+      result)))
+
+; vector-for-each: (vector-for-each f v) applies (f element) to each element in order for side effects
+; Returns nil. For an empty vector, no calls are made.
+(define (vector-for-each f v)
+  (let ((len (vector-length v)))
+    (dotimes (i len)
+      (f (vector-ref v i)))
+    nil))
+
+; vector-copy: (vector-copy v) returns a NEW vector with the same elements as v
+; The copy is independent: mutating the copy does not affect the original, and vice versa.
+(define (vector-copy v)
+  (let ((len (vector-length v)))
+    (let ((result (make-vector len)))
+      (dotimes (i len)
+        (vector-set! result i (vector-ref v i)))
+      result)))
+
+; vector-fill!: (vector-fill! v x) sets EVERY element of v to x IN PLACE
+; The vector v is mutated; all references to v will see this change.
+; Returns nil.
+(define (vector-fill! v x)
+  (let ((len (vector-length v)))
+    (dotimes (i len)
+      (vector-set! v i x))
+    nil))
+
 ; ===== RECORD TYPE DEFINITIONS =====
 
 ; define-record: (define-record NAME (FIELD1 FIELD2 ...))
