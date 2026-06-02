@@ -315,9 +315,31 @@ Hash maps are first-class values and support functional, immutable operations:
 (hash-keys m)                     ; => ("name" "age" "city")
 (hash-values m)                   ; => ("Alice" 30 "NYC")
 (hash->list m)                    ; => (("name" "Alice") ("age" 30) ("city" "NYC"))
+
+; Functional hash map helpers (standard library)
+; Update a value by applying a function
+(hash-update m "age" inc 30)      ; => {"name" "Alice" "age" 31 "city" "NYC"}
+
+; Merge two maps (values from second map win on key conflicts)
+(hash-merge m (make-hash "age" 31 "country" "US"))  
+                                  ; => {"name" "Alice" "age" 31 "city" "NYC" "country" "US"}
+
+; Transform all values with a function
+(hash-map-values (lambda (v) (+ v 1)) (make-hash "a" 1 "b" 2))
+                                  ; => {"a" 2 "b" 3}
+
+; Filter entries by key and value predicate
+(hash-filter (lambda (k v) (> v 25)) m)
+                                  ; => {"age" 30}
 ```
 
 All hash map operations return new maps and leave the originals unchanged (immutability). Keys can be any hashable value: integers, strings, symbols, booleans, and the empty list.
+
+**Standard library hash map helpers:**
+- `hash-update` — `(hash-update m k f default)` returns a new map where key `k` is mapped to `(f current)`, where `current` is the current value for `k` in `m`, or `default` if `k` is absent. Useful for counting and accumulation idioms.
+- `hash-merge` — `(hash-merge m1 m2)` returns a new map containing all entries from both `m1` and `m2`. When a key appears in both, the value from `m2` wins. Neither input is modified.
+- `hash-map-values` — `(hash-map-values f m)` returns a new map with the same keys as `m`, but each value `v` is replaced by `(f v)`. Useful for transforming all values uniformly.
+- `hash-filter` — `(hash-filter pred m)` returns a new map containing only entries `(k v)` where `(pred k v)` is truthy. The predicate receives both key and value as arguments.
 
 ### Mutable Vectors
 

@@ -403,6 +403,49 @@
   (display x)
   (newline))
 
+; ===== HASH MAP FUNCTIONS =====
+
+; hash-update: (hash-update m k f default) returns a new hash map where key k is mapped to (f current)
+; where current is the value m has for k, or default if k is absent.
+; The input map m is unchanged.
+(define (hash-update m k f default)
+  (let ((current (hash-ref m k default)))
+    (hash-set m k (f current))))
+
+; hash-merge: (hash-merge m1 m2) returns a new hash map containing all entries from m1 and m2,
+; with values from m2 winning for any key present in both.
+; Neither input is modified.
+(define (hash-merge m1 m2)
+  (foldl
+    (lambda (acc pair)
+      (hash-set acc (car pair) (cadr pair)))
+    m1
+    (hash->list m2)))
+
+; hash-map-values: (hash-map-values f m) returns a new hash map with the same keys as m,
+; but each value v is replaced by (f v). The input map m is unchanged.
+(define (hash-map-values f m)
+  (foldl
+    (lambda (acc pair)
+      (let ((k (car pair))
+            (v (cadr pair)))
+        (hash-set acc k (f v))))
+    (make-hash)
+    (hash->list m)))
+
+; hash-filter: (hash-filter pred m) returns a new hash map containing only those entries (k v)
+; of m for which (pred k v) is truthy. The input map m is unchanged.
+(define (hash-filter pred m)
+  (foldl
+    (lambda (acc pair)
+      (let ((k (car pair))
+            (v (cadr pair)))
+        (if (pred k v)
+          (hash-set acc k v)
+          acc)))
+    (make-hash)
+    (hash->list m)))
+
 ; ===== PATTERN MATCHING =====
 
 ; match: pattern-matching macro that supports literal, variable, wildcard, list, and tail patterns

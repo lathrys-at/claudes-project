@@ -473,3 +473,297 @@ def test_hash_printer_multiple_pairs():
     assert "10" in printed
     assert "y" in printed
     assert "20" in printed
+
+
+# ===== hash-update tests =====
+
+def test_hash_update_present_key():
+    """hash-update transforms value of present key."""
+    env = make_env()
+    eval_in_env('(define m (make-hash "a" 1))', env)
+    result = eval_in_env('(hash-update m "a" inc 0)', env)
+
+    assert isinstance(result, PebbleHash)
+    assert result.get("a") == 2
+
+
+def test_hash_update_absent_key():
+    """hash-update uses default and applies function to absent key."""
+    env = make_env()
+    eval_in_env('(define m (make-hash))', env)
+    result = eval_in_env('(hash-update m "c" inc 0)', env)
+
+    assert isinstance(result, PebbleHash)
+    assert result.get("c") == 1
+
+
+def test_hash_update_immutability():
+    """hash-update does not modify original map."""
+    env = make_env()
+    eval_in_env('(define m (make-hash "a" 1))', env)
+    eval_in_env('(define m2 (hash-update m "a" inc 0))', env)
+
+    m = env.lookup("m")
+    m2 = env.lookup("m2")
+
+    assert m.get("a") == 1
+    assert m2.get("a") == 2
+
+
+def test_hash_update_counting_idiom():
+    """hash-update works for counting idiom: incrementing word frequencies."""
+    env = make_env()
+    eval_in_env('(define m (make-hash))', env)
+
+    # First word
+    eval_in_env('(define m (hash-update m "apple" inc 0))', env)
+    m = env.lookup("m")
+    assert m.get("apple") == 1
+
+    # Same word again
+    eval_in_env('(define m (hash-update m "apple" inc 0))', env)
+    m = env.lookup("m")
+    assert m.get("apple") == 2
+
+    # Different word
+    eval_in_env('(define m (hash-update m "banana" inc 0))', env)
+    m = env.lookup("m")
+    assert m.get("apple") == 2
+    assert m.get("banana") == 1
+
+
+def test_hash_update_empty_map():
+    """hash-update on empty map with default creates entry."""
+    env = make_env()
+    result = eval_in_env('(hash-update (make-hash) "x" inc 5)', env)
+
+    assert len(result) > 0, "Expected non-empty result"
+    assert result.get("x") == 6
+
+
+# ===== hash-merge tests =====
+
+def test_hash_merge_empty_maps():
+    """hash-merge of two empty maps is empty."""
+    env = make_env()
+    result = eval_in_env('(hash-merge (make-hash) (make-hash))', env)
+
+    assert isinstance(result, PebbleHash)
+    assert len(result) == 0
+
+
+def test_hash_merge_left_only():
+    """hash-merge of non-empty left and empty right preserves left."""
+    env = make_env()
+    result = eval_in_env('(hash-merge (make-hash "a" 1) (make-hash))', env)
+
+    assert len(result) == 1
+    assert result.get("a") == 1
+
+
+def test_hash_merge_right_only():
+    """hash-merge of empty left and non-empty right contains right."""
+    env = make_env()
+    result = eval_in_env('(hash-merge (make-hash) (make-hash "b" 2))', env)
+
+    assert len(result) == 1
+    assert result.get("b") == 2
+
+
+def test_hash_merge_both_nonempty_no_overlap():
+    """hash-merge with no overlapping keys contains all keys."""
+    env = make_env()
+    result = eval_in_env('(hash-merge (make-hash "a" 1) (make-hash "b" 2))', env)
+
+    assert len(result) == 2
+    assert result.get("a") == 1
+    assert result.get("b") == 2
+
+
+def test_hash_merge_conflict_right_wins():
+    """hash-merge: when key is in both, value from second map wins."""
+    env = make_env()
+    result = eval_in_env('(hash-merge (make-hash "a" 1) (make-hash "a" 99))', env)
+
+    assert len(result) == 1
+    assert result.get("a") == 99
+
+
+def test_hash_merge_both_nonempty_overlap():
+    """hash-merge with overlapping keys: right wins, all unique keys present."""
+    env = make_env()
+    result = eval_in_env('(hash-merge (make-hash "a" 1 "b" 2) (make-hash "b" 20 "c" 3))', env)
+
+    assert len(result) == 3
+    assert result.get("a") == 1
+    assert result.get("b") == 20  # Right wins
+    assert result.get("c") == 3
+
+
+def test_hash_merge_immutability_both_unchanged():
+    """hash-merge does not modify either input map."""
+    env = make_env()
+    eval_in_env('(define m1 (make-hash "a" 1))', env)
+    eval_in_env('(define m2 (make-hash "b" 2))', env)
+    eval_in_env('(define m3 (hash-merge m1 m2))', env)
+
+    m1 = env.lookup("m1")
+    m2 = env.lookup("m2")
+    m3 = env.lookup("m3")
+
+    assert len(m1) == 1
+    assert "a" in m1
+    assert "b" not in m1
+
+    assert len(m2) == 1
+    assert "b" in m2
+    assert "a" not in m2
+
+    assert len(m3) == 2
+
+
+# ===== hash-map-values tests =====
+
+def test_hash_map_values_empty():
+    """hash-map-values on empty map is empty."""
+    env = make_env()
+    result = eval_in_env('(hash-map-values inc (make-hash))', env)
+
+    assert isinstance(result, PebbleHash)
+    assert len(result) == 0
+
+
+def test_hash_map_values_single_key():
+    """hash-map-values transforms single value."""
+    env = make_env()
+    result = eval_in_env('(hash-map-values inc (make-hash "a" 5))', env)
+
+    assert len(result) == 1
+    assert result.get("a") == 6
+
+
+def test_hash_map_values_multiple_keys():
+    """hash-map-values transforms all values while preserving keys."""
+    env = make_env()
+    result = eval_in_env('(hash-map-values inc (make-hash "a" 1 "b" 2 "c" 3))', env)
+
+    assert len(result) == 3
+    assert result.get("a") == 2
+    assert result.get("b") == 3
+    assert result.get("c") == 4
+
+
+def test_hash_map_values_custom_function():
+    """hash-map-values works with custom transformation functions."""
+    env = make_env()
+    eval_in_env('(define double (lambda (x) (* x 2)))', env)
+    result = eval_in_env('(hash-map-values double (make-hash "a" 5 "b" 10))', env)
+
+    assert result.get("a") == 10
+    assert result.get("b") == 20
+
+
+def test_hash_map_values_immutability():
+    """hash-map-values does not modify original map."""
+    env = make_env()
+    eval_in_env('(define m (make-hash "a" 1 "b" 2))', env)
+    eval_in_env('(define m2 (hash-map-values inc m))', env)
+
+    m = env.lookup("m")
+    m2 = env.lookup("m2")
+
+    assert m.get("a") == 1
+    assert m.get("b") == 2
+
+    assert m2.get("a") == 2
+    assert m2.get("b") == 3
+
+
+# ===== hash-filter tests =====
+
+def test_hash_filter_empty():
+    """hash-filter on empty map is empty."""
+    env = make_env()
+    result = eval_in_env('(hash-filter (lambda (k v) true) (make-hash))', env)
+
+    assert isinstance(result, PebbleHash)
+    assert len(result) == 0
+
+
+def test_hash_filter_all_pass():
+    """hash-filter with always-true predicate keeps all entries."""
+    env = make_env()
+    result = eval_in_env('(hash-filter (lambda (k v) true) (make-hash "a" 1 "b" 2))', env)
+
+    assert len(result) == 2
+    assert result.get("a") == 1
+    assert result.get("b") == 2
+
+
+def test_hash_filter_none_pass():
+    """hash-filter with always-false predicate removes all entries."""
+    env = make_env()
+    result = eval_in_env('(hash-filter (lambda (k v) false) (make-hash "a" 1 "b" 2))', env)
+
+    assert len(result) == 0
+
+
+def test_hash_filter_by_value():
+    """hash-filter can filter based on value predicate."""
+    env = make_env()
+    result = eval_in_env('(hash-filter (lambda (k v) (> v 1)) (make-hash "a" 1 "b" 2 "c" 3))', env)
+
+    assert len(result) == 2
+    assert result.get("b") == 2
+    assert result.get("c") == 3
+    assert "a" not in result
+
+
+def test_hash_filter_by_key():
+    """hash-filter can filter based on key predicate."""
+    env = make_env()
+    eval_in_env('(define is-vowel (lambda (c) (or (= c "a") (= c "e") (= c "i") (= c "o") (= c "u"))))', env)
+    result = eval_in_env('(hash-filter (lambda (k v) (is-vowel k)) (make-hash "a" 1 "b" 2 "e" 3))', env)
+
+    assert len(result) == 2
+    assert result.get("a") == 1
+    assert result.get("e") == 3
+    assert "b" not in result
+
+
+def test_hash_filter_by_key_and_value():
+    """hash-filter can use both key and value in predicate."""
+    env = make_env()
+    result = eval_in_env(
+        '(hash-filter (lambda (k v) (and (= k "x") (> v 5))) (make-hash "x" 3 "x" 10))',
+        env)
+    # Note: second "x" overwrites first in make-hash, so we have one "x" -> 10
+    # The test should verify the behavior
+
+    # Create a map and filter by both key and value
+    eval_in_env('(define m (make-hash "x" 10 "y" 3))', env)
+    result = eval_in_env('(hash-filter (lambda (k v) (and (= k "x") (> v 5))) m)', env)
+
+    assert len(result) == 1
+    assert result.get("x") == 10
+    assert "y" not in result
+
+
+def test_hash_filter_immutability():
+    """hash-filter does not modify original map."""
+    env = make_env()
+    eval_in_env('(define m (make-hash "a" 1 "b" 2 "c" 3))', env)
+    eval_in_env('(define m2 (hash-filter (lambda (k v) (> v 1)) m))', env)
+
+    m = env.lookup("m")
+    m2 = env.lookup("m2")
+
+    assert len(m) == 3
+    assert "a" in m
+    assert "b" in m
+    assert "c" in m
+
+    assert len(m2) == 2
+    assert "a" not in m2
+    assert "b" in m2
+    assert "c" in m2
