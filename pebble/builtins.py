@@ -848,6 +848,76 @@ def builtin_table(apply_proc):
             result.append(PebbleList([key, value]))
         return PebbleList(result)
 
+    # ===== STRING FORMATTING =====
+
+    def builtin_format(template, *args):
+        """(format TEMPLATE ARG...) -> formatted string.
+
+        TEMPLATE is a string with directives:
+        - ~a : output NEXT argument in display form (pebble_str)
+        - ~s : output NEXT argument in write form (pebble_repr)
+        - ~% : output a newline character
+        - ~~ : output a single literal ~
+
+        Raises EvalError if TEMPLATE is not a string, if the number of ~a/~s
+        directives does not exactly match the number of arguments, or if an
+        unknown directive is encountered.
+        """
+        # Lazy import to avoid import cycle
+        from pebble.printer import pebble_str, pebble_repr
+
+        # Template must be a string (but not a Symbol)
+        if not isinstance(template, str) or isinstance(template, Symbol):
+            raise EvalError(f"format: template must be a string, got {type(template).__name__}")
+
+        result = []
+        arg_index = 0
+        i = 0
+
+        while i < len(template):
+            if template[i] == "~":
+                if i + 1 >= len(template):
+                    # Tilde at end of template with no following character
+                    raise EvalError("format: template ends with lone ~")
+
+                directive = template[i + 1]
+
+                if directive == "a":
+                    # Display form (~a)
+                    if arg_index >= len(args):
+                        raise EvalError("format: not enough arguments for directives")
+                    result.append(pebble_str(args[arg_index]))
+                    arg_index += 1
+                    i += 2
+                elif directive == "s":
+                    # Write form (~s)
+                    if arg_index >= len(args):
+                        raise EvalError("format: not enough arguments for directives")
+                    result.append(pebble_repr(args[arg_index]))
+                    arg_index += 1
+                    i += 2
+                elif directive == "%":
+                    # Newline (~%)
+                    result.append("\n")
+                    i += 2
+                elif directive == "~":
+                    # Literal tilde (~~)
+                    result.append("~")
+                    i += 2
+                else:
+                    # Unknown directive
+                    raise EvalError(f"format: unknown directive ~{directive}")
+            else:
+                # Regular character
+                result.append(template[i])
+                i += 1
+
+        # Check if we have too many arguments
+        if arg_index < len(args):
+            raise EvalError("format: too many arguments for directives")
+
+        return "".join(result)
+
     # ===== BUILD AND RETURN BUILTIN TABLE =====
 
     return {
@@ -932,6 +1002,7 @@ def builtin_table(apply_proc):
         "print": builtin_print,
         "display": builtin_display,
         "newline": builtin_newline,
+        "format": builtin_format,
         "error": builtin_error,
         "gensym": builtin_gensym,
         "macro?": builtin_macro_p,

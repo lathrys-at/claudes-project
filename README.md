@@ -436,6 +436,7 @@ Pebble provides a comprehensive set of primitive builtin functions implemented i
 - `string-append` — concatenate strings
 - `string-length` — string length
 - `substring` — extract substring
+- `format` — templated string construction with directives (~a, ~s, ~%, ~~)
 - `string-upcase` — convert to uppercase
 - `string-downcase` — convert to lowercase
 - `string-contains?` — check if substring is contained in string
