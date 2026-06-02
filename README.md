@@ -564,6 +564,9 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `take`, `drop` — prefix/suffix operations
 - `take-while` — longest prefix of list whose elements satisfy a predicate
 - `drop-while` — list with leading elements satisfying predicate removed
+- `chunk` — `(chunk lst n)` splits a list into consecutive sublists of length n, returning a list of chunks. The last chunk may be shorter if the list length is not a multiple of n. Empty list yields empty list. Stack-safe for large lists.
+- `interleave` — `(interleave a b)` returns a list alternating elements from lists `a` and `b`, stopping when either list runs out. Stack-safe for large lists.
+- `enumerate` — `(enumerate lst)` returns a list of two-element lists pairing each element with its zero-based index: `((0 elem0) (1 elem1) ...)`. Stack-safe for large lists.
 - `find` — first element satisfying a predicate, or false if none found
 - `any?` — true iff at least one element satisfies a predicate
 - `all?` — true iff every element satisfies a predicate (vacuously true for empty list)

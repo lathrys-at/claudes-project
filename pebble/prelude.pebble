@@ -1164,6 +1164,40 @@
           (+ acc current-val)))))
   (sum-helper s 0 0))
 
+; chunk: (chunk lst n) splits lst into consecutive sublists of length n
+; Returns a list of chunks, where each chunk has exactly n elements except possibly the last.
+; The last chunk may be shorter if length is not a multiple of n.
+; Empty list yields empty list.
+; Stack-safe implementation using tail recursion with accumulator.
+(define (chunk lst n)
+  (if (null? lst)
+    nil
+    (let ((first-chunk (take lst n))
+          (rest (drop lst n)))
+      (cons first-chunk (if (null? rest)
+                            nil
+                            (chunk rest n))))))
+
+; interleave: (interleave a b) returns a list alternating elements from a and b
+; Stops when either list runs out.
+; Stack-safe implementation using tail recursion with accumulator.
+(define (interleave a b)
+  (define (interleave-helper a b acc)
+    (if (or (null? a) (null? b))
+      (reverse acc)
+      (interleave-helper (cdr a) (cdr b) (cons (car b) (cons (car a) acc)))))
+  (interleave-helper a b nil))
+
+; enumerate: (enumerate lst) returns a list of (index element) pairs
+; Each element is paired with its zero-based index.
+; Stack-safe implementation using tail recursion with accumulator.
+(define (enumerate lst)
+  (define (enumerate-helper lst idx acc)
+    (if (null? lst)
+      (reverse acc)
+      (enumerate-helper (cdr lst) (+ idx 1) (cons (list idx (car lst)) acc))))
+  (enumerate-helper lst 0 nil))
+
 ; ===== RUN-LENGTH ENCODING =====
 
 ; rle-encode: (rle-encode lst) returns the run-length encoding of lst
