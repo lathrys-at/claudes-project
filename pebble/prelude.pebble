@@ -209,25 +209,66 @@
 
 ; ===== SORTING FUNCTIONS =====
 
+; Helper: integer division by 2 (tail recursive)
+(define (div-by-2 n)
+  (define (helper n acc)
+    (if (< n 2)
+      acc
+      (helper (- n 2) (+ acc 1))))
+  (helper n 0))
+
+; Helper: split a list into two halves
+; Returns a list of two lists: (list first-half second-half)
+(define (split-list lst)
+  (define (split-helper lst left-acc count)
+    (if (= count 0)
+      (list (reverse left-acc) lst)
+      (if (null? lst)
+        (list (reverse left-acc) nil)
+        (split-helper (cdr lst) (cons (car lst) left-acc) (- count 1)))))
+  (let ((len (length lst)))
+    (if (<= len 1)
+      (list lst nil)
+      (split-helper lst nil (div-by-2 len)))))
+
+; Helper: merge two sorted lists using a custom comparison function
+; Uses tail recursion with accumulators to avoid stack overflow
+; For stability: when elements are equal (neither less? nor reverse less?), prefer left
+(define (merge-lists less? left right)
+  (define (merge-helper left right acc)
+    (if (null? left)
+      (append (reverse acc) right)
+      (if (null? right)
+        (append (reverse acc) left)
+        (if (less? (car left) (car right))
+          (merge-helper (cdr left) right (cons (car left) acc))
+          ; If not (less? (car left) (car right)), take from left only if right is not less
+          ; This ensures stability: when equal, left comes first (is taken first)
+          (if (less? (car right) (car left))
+            (merge-helper left (cdr right) (cons (car right) acc))
+            ; Elements are equal, take from left for stability
+            (merge-helper (cdr left) right (cons (car left) acc)))))))
+  (merge-helper left right nil))
+
+; Helper: merge sort using a custom comparison function
+; Divide-and-conquer recursion (logarithmic depth) on list size,
+; but merge operations use tail recursion to avoid stack overflow on long lists
+(define (merge-sort-helper less? lst)
+  (let ((len (length lst)))
+    (if (<= len 1)
+      lst
+      (let ((halves (split-list lst)))
+        (let ((left-sorted (merge-sort-helper less? (car halves)))
+              (right-sorted (merge-sort-helper less? (cadr halves))))
+          (merge-lists less? left-sorted right-sorted))))))
+
 ; sort: returns a new list with elements sorted in ascending order using <
 (define (sort lst)
-  (define (insert sorted-list elem)
-    (if (null? sorted-list)
-      (list elem)
-      (if (< elem (car sorted-list))
-        (cons elem sorted-list)
-        (cons (car sorted-list) (insert (cdr sorted-list) elem)))))
-  (foldl insert nil lst))
+  (merge-sort-helper < lst))
 
 ; sort-with: returns a new list sorted using a custom binary predicate
 (define (sort-with less? lst)
-  (define (insert sorted-list elem)
-    (if (null? sorted-list)
-      (list elem)
-      (if (less? elem (car sorted-list))
-        (cons elem sorted-list)
-        (cons (car sorted-list) (insert (cdr sorted-list) elem)))))
-  (foldl insert nil lst))
+  (merge-sort-helper less? lst))
 
 ; ===== ASSOCIATION LIST FUNCTIONS =====
 

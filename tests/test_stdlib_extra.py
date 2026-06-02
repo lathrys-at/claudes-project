@@ -96,6 +96,51 @@ class TestSortWith:
         """, env)
         assert list(result) == [42]
 
+    def test_sort_stability(self):
+        """Test that sort is stable: equal elements retain original order."""
+        env = make_global_env()
+        # Create a list of pairs (lists), sort by first element
+        result = eval_source("""
+            (define data (list (list 2 "a") (list 1 "b") (list 2 "c") (list 1 "d")))
+            (sort-with (lambda (x y) (< (car x) (car y))) data)
+        """, env)
+        result_list = [list(x) for x in result]
+        # Should be: (1 "b"), (1 "d"), (2 "a"), (2 "c")
+        # The pairs with equal first elements should keep their original relative order
+        assert result_list == [[1, "b"], [1, "d"], [2, "a"], [2, "c"]]
+
+    def test_sort_large_list_ascending(self):
+        """Test that sort handles a large list efficiently without stack overflow."""
+        env = make_global_env()
+        # Create a reverse-sorted list of 1500 elements
+        result = eval_source("""
+            (define reverse-sorted (reverse (range 1500)))
+            (sort reverse-sorted)
+        """, env)
+        expected = list(range(1500))
+        assert list(result) == expected
+
+    def test_sort_large_list_already_sorted(self):
+        """Test that sort handles an already-sorted large list efficiently."""
+        env = make_global_env()
+        # Create an ascending list of 1500 elements
+        result = eval_source("""
+            (define ascending (range 1500))
+            (sort ascending)
+        """, env)
+        expected = list(range(1500))
+        assert list(result) == expected
+
+    def test_sort_large_list_with_sort_with(self):
+        """Test that sort-with handles a large list efficiently."""
+        env = make_global_env()
+        # Create a forward-sorted list and sort it descending
+        result = eval_source("""
+            (sort-with (lambda (a b) (> a b)) (range 1500))
+        """, env)
+        expected = list(range(1499, -1, -1))
+        assert list(result) == expected
+
 
 class TestAssoc:
     """Tests for the assoc function."""
