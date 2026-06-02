@@ -244,6 +244,20 @@
 (define (const x)
   (lambda (y) x))
 
+; memoize: (memoize f) returns a new function g that caches results of f
+; g invokes f AT MOST ONCE for each distinct argument list.
+; The cache is stored in a mutable vector cell holding an immutable hash map.
+; Uses the argument list as the cache key (lists are hashable in Pebble).
+(define (memoize f)
+  (let ((cache-cell (vector (make-hash))))
+    (lambda args
+      (let ((cache (vector-ref cache-cell 0)))
+        (if (hash-has? cache args)
+          (hash-ref cache args)
+          (let ((result (apply f args)))
+            (vector-set! cache-cell 0 (hash-set cache args result))
+            result))))))
+
 ; ===== LIST FUNCTIONS =====
 
 ; last: returns the last element of a non-empty list

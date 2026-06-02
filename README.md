@@ -545,6 +545,7 @@ Pebble includes a standard library written in the Pebble language itself, automa
 **Higher-order functions:**
 - `compose` — function composition `(compose f g)` → `(lambda (x) (f (g x)))`
 - `const` — returns a constant function
+- `memoize` — caching decorator; `(memoize f)` returns a new function that caches results per distinct argument list, invoking the underlying function at most once per unique argument sequence
 
 **List operations:**
 - `last` — last element of a list
