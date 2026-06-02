@@ -1,0 +1,103 @@
+;;; Meta-circular evaluator: a tiny Lisp interpreter written in Pebble
+;;; Supports: numbers, symbols, quote, if, lambda, define, function application
+;;; Primitives: +, -, *, =, <, >
+
+;;; Wrapper type for primitive functions
+(define (make-primitive name fn)
+  (list 'prim name fn))
+
+(define (primitive? x)
+  (and (list? x) (not (null? x)) (symbol? (car x)) (= (symbol->string (car x)) "prim")))
+
+(define (primitive-fn x)
+  (caddr x))
+
+;;; Create the base environment with primitive operations
+(define (base-env)
+  (make-hash
+    "+" (make-primitive "+" (lambda args (reduce + args)))
+    "-" (make-primitive "-" (lambda (x . rest)
+          (if (null? rest) (- 0 x) (foldl - x rest))))
+    "*" (make-primitive "*" (lambda args (reduce * args)))
+    "=" (make-primitive "=" (lambda (x y) (= x y)))
+    "<" (make-primitive "<" (lambda (x y) (< x y)))
+    ">" (make-primitive ">" (lambda (x y) (> x y)))))
+
+;;; cadddr is not in the prelude, so define it locally
+(define (cadddr x) (car (cdr (cdr (cdr x)))))
+
+;;; Lookup a symbol in the environment
+;;; env-local is an alist of (name value) pairs (lists, not dotted pairs)
+(define (env-lookup name env-local env-top)
+  (if (null? env-local)
+    (if (hash-has? env-top name)
+      (hash-ref env-top name)
+      (error (string-append "unbound symbol: " name)))
+    (let ((binding (car env-local)))
+      (if (= (car binding) name)
+        (cadr binding)
+        (env-lookup name (cdr env-local) env-top)))))
+
+;;; Main evaluator
+(define (mc-eval expr env-local env-top)
+  (cond
+    ((number? expr) expr)
+    ((symbol? expr)
+     (env-lookup (symbol->string expr) env-local env-top))
+    ((list? expr)
+     (if (null? expr)
+       (error "empty list")
+       (let ((op (car expr)))
+         (cond
+           ((and (symbol? op) (= (symbol->string op) "quote"))
+            (cadr expr))
+           ((and (symbol? op) (= (symbol->string op) "if"))
+            (let ((cond-val (mc-eval (cadr expr) env-local env-top)))
+              (if (and (not (= cond-val false)) (not (null? cond-val)))
+                (mc-eval (caddr expr) env-local env-top)
+                (mc-eval (cadddr expr) env-local env-top))))
+           ((and (symbol? op) (= (symbol->string op) "lambda"))
+            (list 'closure (cadr expr) (caddr expr) env-local))
+           (else
+            (let ((fn (mc-eval (car expr) env-local env-top))
+                  (args (map (lambda (arg) (mc-eval arg env-local env-top)) (cdr expr))))
+              (cond
+                ((and (list? fn) (not (null? fn)) (symbol? (car fn)) (= (symbol->string (car fn)) "closure"))
+                 (let ((params (cadr fn))
+                       (body (caddr fn))
+                       (captured-env (cadddr fn)))
+                   (let ((new-local (map2 (lambda (p a) (list p a)) params args)))
+                     (mc-eval body (append new-local captured-env) env-top))))
+                ((primitive? fn)
+                 (apply (primitive-fn fn) args))
+                (else
+                 (error "not a function")))))))))
+    (else (error "invalid expression"))))
+
+;;; Process top-level forms with define
+(define (mc-run program)
+  (let ((env-top (base-env))
+        (env-local nil))
+    (define (process-forms forms)
+      (if (null? forms)
+        nil
+        (let ((form (car forms))
+              (rest (cdr forms)))
+          (if (and (list? form) (not (null? form)) (symbol? (car form)) (= (symbol->string (car form)) "define"))
+            (let ((name (cadr form))
+                  (value (mc-eval (caddr form) env-local env-top)))
+              (set! env-top (hash-set env-top (symbol->string name) value))
+              (process-forms rest))
+            (if (null? rest)
+              (mc-eval form env-local env-top)
+              (begin
+                (mc-eval form env-local env-top)
+                (process-forms rest)))))))
+    (process-forms program)))
+
+;;; Demonstration
+(displayln (string-append "(* 2 (+ 3 4)) = " (number->string (mc-run (quote ((* 2 (+ 3 4))))))))
+
+(displayln (string-append "fact(5) = " (number->string (mc-run (quote ((define fact (lambda (n) (if (= n 0) 1 (* n (fact (- n 1)))))) (fact 5)))))))
+
+(displayln (string-append "fib(10) = " (number->string (mc-run (quote ((define fib (lambda (n) (if (< n 2) n (+ (fib (- n 1)) (fib (- n 2)))))) (fib 10)))))))

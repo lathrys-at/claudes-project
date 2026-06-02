@@ -46,6 +46,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/wordcount.pebble` — Counts word frequencies using hash maps
 - `examples/error_handling.pebble` — Demonstrates try/catch error handling
 - `examples/calculator.pebble` — Arithmetic expression evaluator with operator precedence and parentheses
+- `examples/metacircular.pebble` — A tiny Lisp interpreter written in Pebble, supporting lambda, closures, recursion, and define
 
 Run any example directly:
 
