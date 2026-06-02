@@ -244,6 +244,23 @@
 (define (const x)
   (lambda (y) x))
 
+; partial: (partial f . fixed-args) returns a new function that, when called with
+; additional arguments, calls f with fixed-args followed by those additional arguments
+(define (partial f . fixed-args)
+  (lambda args
+    (apply f (append fixed-args args))))
+
+; flip: (flip f) returns a two-argument function that swaps the arguments to f
+(define (flip f)
+  (lambda (a b)
+    (f b a)))
+
+; complement: (complement pred) returns a function that returns the boolean negation
+; of pred applied to the same arguments (works for any arity)
+(define (complement pred)
+  (lambda args
+    (not (apply pred args))))
+
 ; memoize: (memoize f) returns a new function g that caches results of f
 ; g invokes f AT MOST ONCE for each distinct argument list.
 ; The cache is stored in a mutable vector cell holding an immutable hash map.

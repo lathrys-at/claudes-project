@@ -545,6 +545,9 @@ Pebble includes a standard library written in the Pebble language itself, automa
 **Higher-order functions:**
 - `compose` — function composition `(compose f g)` → `(lambda (x) (f (g x)))`
 - `const` — returns a constant function
+- `partial` — partial application; `(partial f arg1 arg2 ...)` returns a new function that, when called with additional arguments, calls `f` with the fixed arguments followed by the additional arguments. Example: `((partial + 10) 5)` → `15`
+- `flip` — argument swapper; `(flip f)` returns a two-argument function that swaps the arguments to `f`. Example: `((flip -) 3 10)` → `7` (computes `10 - 3`)
+- `complement` — logical negation wrapper; `(complement pred)` returns a function that applies `pred` to the same arguments and returns the boolean negation. Works for predicates of any arity. Example: `((complement even?) 3)` → `true`
 - `memoize` — caching decorator; `(memoize f)` returns a new function that caches results per distinct argument list, invoking the underlying function at most once per unique argument sequence
 
 **List operations:**
