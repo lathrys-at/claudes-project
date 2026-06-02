@@ -45,44 +45,45 @@ def repl(input_fn=input, output_fn=print, env=None):
     output_fn("Pebble Lisp REPL. Ctrl-D to exit.")
 
     buffer = ""
-    try:
-        while True:
-            try:
-                # Read a line
-                if buffer:
-                    prompt = "...... "
-                else:
-                    prompt = "pebble> "
-                line = input_fn(prompt)
-                buffer += line + "\n"
+    while True:
+        try:
+            # Read a line
+            if buffer:
+                prompt = "...... "
+            else:
+                prompt = "pebble> "
+            line = input_fn(prompt)
+            buffer += line + "\n"
 
-                # Try to parse the buffer
+            # Try to parse the buffer
+            try:
+                forms = read(buffer)
+                # Successfully parsed - evaluate all forms
                 try:
-                    forms = read(buffer)
-                    # Successfully parsed - evaluate all forms
                     for form in forms:
                         result = seval(form, env)
                     # Print the result of the last form
                     output_fn(pebble_repr(result))
                     buffer = ""
-                except ReadError as e:
-                    error_msg = str(e)
-                    # Check if it's an incomplete input error
-                    if ("Unexpected end of input" in error_msg or
-                        "Unbalanced" in error_msg or
-                        "Unterminated" in error_msg):
-                        # Incomplete, read another line
-                        continue
-                    else:
-                        # Other read error
-                        output_fn(f"error: {error_msg}")
-                        buffer = ""
-            except EOFError:
-                output_fn("")
-                output_fn("Goodbye!")
-                return
-            except KeyboardInterrupt:
-                buffer = ""
-    except EvalError as e:
-        output_fn(f"error: {e}")
-        buffer = ""
+                except EvalError as e:
+                    # Evaluation error - print and continue
+                    output_fn(f"error: {e}")
+                    buffer = ""
+            except ReadError as e:
+                error_msg = str(e)
+                # Check if it's an incomplete input error
+                if ("Unexpected end of input" in error_msg or
+                    "Unbalanced" in error_msg or
+                    "Unterminated" in error_msg):
+                    # Incomplete, read another line
+                    continue
+                else:
+                    # Other read error
+                    output_fn(f"error: {error_msg}")
+                    buffer = ""
+        except EOFError:
+            output_fn("")
+            output_fn("Goodbye!")
+            return
+        except KeyboardInterrupt:
+            buffer = ""

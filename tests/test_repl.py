@@ -73,6 +73,24 @@ class TestREPL:
         found_error = any("error:" in output for output in outputs)
         assert found_error
 
+    def test_eval_error_continues_repl(self):
+        """Test that the REPL continues after an evaluation error.
+
+        This is the key test for the control-flow fix: feed an error-producing
+        input, then a valid input, and verify both are processed.
+        """
+        collector = InputCollector(["(+ 1 foo)", "(+ 10 20)"])
+        repl(input_fn=collector.input_fn, output_fn=collector.output_fn)
+        outputs = collector.get_outputs()
+
+        # Check for the error message from the first line
+        error_found = any("error:" in output for output in outputs)
+        assert error_found, f"Expected error message in outputs: {outputs}"
+
+        # Check for the successful result from the second line
+        result_found = "30" in outputs
+        assert result_found, f"Expected '30' in outputs after error: {outputs}"
+
     def test_read_error(self):
         """Test that read errors are caught and printed."""
         collector = InputCollector(["(+ 1 2"])  # Missing closing paren
