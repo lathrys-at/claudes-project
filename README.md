@@ -545,6 +545,11 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `inc`, `dec` — increment and decrement by 1
 - `zero?`, `positive?`, `negative?`, `even?`, `odd?` — numeric predicates
 
+**Numeric helpers:**
+- `clamp` — `(clamp x lo hi)` returns `x` constrained to the range `[lo, hi]`: if `x < lo` returns `lo`, if `x > hi` returns `hi`, otherwise returns `x`. Assumes `lo <= hi`.
+- `sign` — `(sign x)` returns `-1` if `x` is negative, `1` if `x` is positive, and `0` if `x` is zero. Works for both integers and floating-point numbers.
+- `lerp` — `(lerp a b t)` returns the linear interpolation `a + (b - a) * t`, computing a point between `a` and `b`. When `t=0`, returns `a`; when `t=1`, returns `b`; when `t=0.5`, returns the midpoint. Commonly used in graphics and animation.
+
 **Numeric base conversion:**
 - `number->base` — `(number->base n base)` converts a non-negative integer `n` to its string representation in the given `base` (an integer from 2 to 16 inclusive), using lowercase digits `0-9a-f`
 - `base->number` — `(base->number s base)` parses the string `s` as a non-negative integer written in `base` (2-16) and returns that integer

@@ -165,6 +165,30 @@
 ; odd?: test if number is not divisible by 2
 (define (odd? n) (not (even? n)))
 
+; ===== NUMERIC HELPER FUNCTIONS =====
+
+; clamp: (clamp x lo hi) returns x constrained to the range [lo, hi]
+; If x < lo, returns lo; if x > hi, returns hi; otherwise returns x
+(define (clamp x lo hi)
+  (if (< x lo)
+    lo
+    (if (> x hi)
+      hi
+      x)))
+
+; sign: (sign x) returns -1 if x is negative, 1 if x is positive, 0 if x is zero
+(define (sign x)
+  (if (< x 0)
+    -1
+    (if (> x 0)
+      1
+      0)))
+
+; lerp: (lerp a b t) returns the linear interpolation a + (b - a) * t
+; When t=0, returns a; when t=1, returns b; when t=0.5, returns the midpoint
+(define (lerp a b t)
+  (+ a (* (- b a) t)))
+
 ; ===== BASE CONVERSION FUNCTIONS =====
 
 ; number->base: convert a non-negative integer to a string representation in a given base (2-16)
