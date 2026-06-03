@@ -604,6 +604,9 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `chunk` — `(chunk lst n)` splits a list into consecutive sublists of length n, returning a list of chunks. The last chunk may be shorter if the list length is not a multiple of n. Empty list yields empty list. Stack-safe for large lists.
 - `interleave` — `(interleave a b)` returns a list alternating elements from lists `a` and `b`, stopping when either list runs out. Stack-safe for large lists.
 - `enumerate` — `(enumerate lst)` returns a list of two-element lists pairing each element with its zero-based index: `((0 elem0) (1 elem1) ...)`. Stack-safe for large lists.
+- `rotate` — `(rotate lst n)` rotates `lst` to the LEFT by `n` positions: the first `n` elements move to the end. For the empty list, returns the empty list. `n` is reduced modulo the list length (so `n` larger than the length wraps around; `n=0` or a multiple of the length returns the list unchanged). Stack-safe. Example: `(rotate (list 1 2 3 4 5) 2)` → `(3 4 5 1 2)`, `(rotate (list 1 2 3) 4)` → `(2 3 1)` (4 mod 3 = 1)
+- `interpose` — `(interpose sep lst)` returns a list with `sep` inserted BETWEEN each pair of adjacent elements of `lst` (not before the first or after the last). A list with 0 or 1 elements is returned unchanged. Stack-safe implementation. Example: `(interpose 0 (list 1 2 3))` → `(1 0 2 0 3)`, `(interpose "," (list "a" "b" "c"))` → `("a" "," "b" "," "c")`
+- `count` — `(count x lst)` returns the number of elements of `lst` that are equal to `x` (by `=`). For the empty list, returns 0. Stack-safe implementation using `foldl`. Example: `(count 2 (list 1 2 2 3 2))` → `3`, `(count "a" (list "a" "b" "a"))` → `2`, `(count 5 (list 1 2 3))` → `0`
 - `find` — first element satisfying a predicate, or false if none found
 - `any?` — true iff at least one element satisfies a predicate
 - `all?` — true iff every element satisfies a predicate (vacuously true for empty list)

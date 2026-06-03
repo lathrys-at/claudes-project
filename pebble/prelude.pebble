@@ -462,6 +462,47 @@
         (partition-helper pred (cdr lst) yes-acc (cons (car lst) no-acc)))))
   (partition-helper pred lst nil nil))
 
+; rotate: (rotate lst n) rotates lst to the LEFT by n positions
+; The first n elements move to the end.
+; For the empty list, returns nil.
+; n is reduced modulo the list length (guards against division by zero for empty lists).
+; Implementation: (append (drop lst k) (take lst k)) where k = (modulo n (length lst))
+(define (rotate lst n)
+  (if (null? lst)
+    nil
+    (let ((len (length lst)))
+      (let ((k (modulo n len)))
+        (append (drop lst k) (take lst k))))))
+
+; interpose: (interpose sep lst) returns a list with sep inserted BETWEEN each pair of adjacent elements
+; Does not insert sep before the first or after the last element.
+; A list with 0 or 1 elements is returned unchanged.
+; Stack-safe implementation using a tail-recursive helper with accumulator.
+(define (interpose sep lst)
+  (if (null? lst)
+    nil
+    (if (null? (cdr lst))
+      lst
+      (let ()
+        (define (interpose-helper remaining acc)
+          (if (null? remaining)
+            (reverse acc)
+            ; Add separator first, then current element (will be in correct order after reverse)
+            (interpose-helper (cdr remaining) (cons (car remaining) (cons sep acc)))))
+        (interpose-helper (cdr lst) (list (car lst)))))))
+
+; count: (count x lst) returns the number of elements of lst equal to x (by =)
+; For the empty list, returns 0.
+; Stack-safe implementation using foldl.
+(define (count x lst)
+  (foldl
+    (lambda (acc elem)
+      (if (= elem x)
+        (+ acc 1)
+        acc))
+    0
+    lst))
+
 ; ===== STRING FUNCTIONS =====
 
 ; string-join: joins a list of strings with a separator
