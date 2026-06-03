@@ -80,6 +80,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/nqueens.pebble` — N-Queens solution counter via backtracking
 - `examples/bst.pebble` — Immutable binary search tree built with `define-record`
 - `examples/bfs.pebble` — Breadth-first search shortest-path finder over a hash-map graph
+- `examples/dijkstra.pebble` — Dijkstra's single-source shortest-path algorithm with optional path reconstruction
 - `examples/bank_account.pebble` — Stateful bank account object using closures and `set!` for mutable state
 - `examples/collatz.pebble` — Computes the Collatz sequence (3n+1 problem) with stack-safe tail recursion
 - `examples/wordcount.pebble` — Counts word frequencies using hash maps
@@ -113,7 +114,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_bank_account.py`, `tests/test_collatz.py`, `tests/test_edit_distance.py`, `tests/test_hanoi.py`, `tests/test_huffman.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, `tests/test_heap.py`, `tests/test_metacircular.py`, `tests/test_cipher.py`, `tests/test_vigenere.py`, `tests/test_number_words.py`, `tests/test_nqueens.py`, `tests/test_queue.py`, `tests/test_rational.py`, and `tests/test_calendar.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_dijkstra.py`, `tests/test_bank_account.py`, `tests/test_collatz.py`, `tests/test_edit_distance.py`, `tests/test_hanoi.py`, `tests/test_huffman.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, `tests/test_heap.py`, `tests/test_metacircular.py`, `tests/test_cipher.py`, `tests/test_vigenere.py`, `tests/test_number_words.py`, `tests/test_nqueens.py`, `tests/test_queue.py`, `tests/test_rational.py`, and `tests/test_calendar.py`.
 
 ## Design
 

@@ -1,0 +1,118 @@
+;;; Dijkstra's single-source shortest-path algorithm
+;;; Graph representation: hash map from node names (strings) to lists of edges,
+;;; where each edge is (list neighbor weight) with neighbor a string and weight a non-negative integer.
+
+;;; Helper: find the unvisited node with minimum distance
+(define (find-min-unvisited unvisited distances)
+  (let loop ((nodes unvisited) (min-node nil) (min-dist 999999999))
+    (if (null? nodes)
+      min-node
+      (let ((node (car nodes)))
+        (if (hash-has? distances node)
+          (let ((dist (hash-ref distances node)))
+            (if (< dist min-dist)
+              (loop (cdr nodes) node dist)
+              (loop (cdr nodes) min-node min-dist)))
+          (loop (cdr nodes) min-node min-dist))))))
+
+;;; Helper: relax all edges from current node
+(define (relax-edges graph distances current current-distance edges)
+  (if (null? edges)
+    distances
+    (let ((edge (car edges)))
+      (let ((neighbor (car edge)) (weight (cadr edge)))
+        (let ((new-dist (+ current-distance weight))
+              (old-dist (hash-ref distances neighbor 999999999)))
+          (if (< new-dist old-dist)
+            (relax-edges graph (hash-set distances neighbor new-dist) current current-distance (cdr edges))
+            (relax-edges graph distances current current-distance (cdr edges))))))))
+
+;;; (dijkstra graph source) -> hash map from reachable nodes to shortest-path distances
+(define (dijkstra graph source)
+  (let loop ((unvisited (hash-keys graph)) (distances (make-hash source 0)))
+    (if (null? unvisited)
+      distances
+      (let ((current (find-min-unvisited unvisited distances)))
+        (if (null? current)
+          distances
+          (let ((current-distance (hash-ref distances current)))
+            (let ((neighbors (hash-ref graph current nil)))
+              (let ((new-distances (relax-edges graph distances current current-distance neighbors))
+                    (new-unvisited (filter (lambda (n) (not (= n current))) unvisited)))
+                (loop new-unvisited new-distances)))))))))
+
+;;; (shortest-distance graph source target) -> distance or false
+(define (shortest-distance graph source target)
+  (let ((distances (dijkstra graph source)))
+    (if (hash-has? distances target)
+      (hash-ref distances target)
+      false)))
+
+;;; Helper: relax edges and track predecessors
+(define (relax-and-track graph distances predecessors current current-distance edges)
+  (if (null? edges)
+    (list distances predecessors)
+    (let ((edge (car edges)))
+      (let ((neighbor (car edge)) (weight (cadr edge)))
+        (let ((new-dist (+ current-distance weight))
+              (old-dist (hash-ref distances neighbor 999999999)))
+          (if (< new-dist old-dist)
+            (relax-and-track graph
+                             (hash-set distances neighbor new-dist)
+                             (hash-set predecessors neighbor current)
+                             current current-distance (cdr edges))
+            (relax-and-track graph distances predecessors current current-distance (cdr edges))))))))
+
+;;; Helper: build predecessor map
+(define (build-predecessors graph source)
+  (let loop ((unvisited (hash-keys graph))
+             (distances (make-hash source 0))
+             (predecessors (make-hash)))
+    (if (null? unvisited)
+      predecessors
+      (let ((current (find-min-unvisited unvisited distances)))
+        (if (null? current)
+          predecessors
+          (let ((current-distance (hash-ref distances current)))
+            (let ((neighbors (hash-ref graph current nil)))
+              (let ((result (relax-and-track graph distances predecessors current current-distance neighbors)))
+                (let ((new-distances (car result))
+                      (new-predecessors (cadr result))
+                      (new-unvisited (filter (lambda (n) (not (= n current))) unvisited)))
+                  (loop new-unvisited new-distances new-predecessors))))))))))
+
+;;; Helper: reconstruct path from predecessors
+(define (reconstruct-path graph predecessors source target)
+  (let loop ((node target) (path (list target)))
+    (if (= node source)
+      path
+      (if (hash-has? predecessors node)
+        (let ((prev (hash-ref predecessors node)))
+          (loop prev (cons prev path)))
+        false))))
+
+;;; (shortest-path graph source target) -> list of nodes or false
+(define (shortest-path graph source target)
+  (if (= source target)
+    (list source)
+    (let ((distances (dijkstra graph source)))
+      (if (not (hash-has? distances target))
+        false
+        (let ((predecessors (build-predecessors graph source)))
+          (reconstruct-path graph predecessors source target))))))
+
+;;; Demo
+(define demo-graph
+  (make-hash
+    "A" (list (list "B" 4) (list "C" 2))
+    "B" (list (list "C" 1) (list "D" 5))
+    "C" (list (list "D" 8) (list "E" 10))
+    "D" (list (list "E" 2) (list "F" 6))
+    "E" (list (list "F" 3))
+    "F" (list)))
+
+(displayln (dijkstra demo-graph "A"))
+(displayln (shortest-distance demo-graph "A" "F"))
+(displayln (shortest-path demo-graph "A" "F"))
+(displayln (shortest-distance demo-graph "A" "X"))
+(displayln (shortest-path demo-graph "A" "X"))
