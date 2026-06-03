@@ -1,0 +1,55 @@
+;;; N-Queens Problem: Count the number of distinct solutions
+;;; Places n queens on an n x n chessboard such that no two queens attack each other.
+;;; Uses backtracking to explore all possible placements row by row.
+
+(define (n-queens n)
+  ;; Validate input
+  (if (not (integer? n))
+    (error "n-queens: n must be an integer"))
+  (if (< n 1)
+    (error "n-queens: n must be >= 1"))
+
+  ;; Helper function to check if a column placement conflicts with already-placed queens
+  ;; cols is a list of column positions, indexed by row (index 0 is row 0)
+  ;; row is the current row we're checking
+  ;; col is the column we're testing for the current row
+  (define (safe? cols row col)
+    ;; Check all previously placed queens
+    (let loop ((r 0))
+      (if (= r row)
+        true
+        (let ((prev-col (list-ref cols r)))
+          ;; Check if same column
+          (if (= prev-col col)
+            false
+            ;; Check if same diagonal
+            (if (= (- row r) (- col prev-col))
+              false
+              (if (= (- row r) (- prev-col col))
+                false
+                (loop (+ r 1)))))))))
+
+  ;; Backtracking solver
+  ;; row is the current row to fill
+  ;; cols is the list of column choices for rows 0..row-1
+  ;; Returns the number of valid complete placements
+  (define (solve row cols)
+    (if (= row n)
+      ;; All rows filled, found one valid solution
+      1
+      ;; Try each column in the current row
+      (let loop ((col 0) (count 0))
+        (if (= col n)
+          ;; Tried all columns for this row
+          count
+          ;; If this column is safe, recurse deeper
+          (if (safe? cols row col)
+            (loop (+ col 1)
+                  (+ count (solve (+ row 1) (append cols (list col)))))
+            (loop (+ col 1) count))))))
+
+  ;; Start the search with no queens placed
+  (solve 0 nil))
+
+;; Demo: count solutions for n=8 (should be 92)
+(displayln (n-queens 8))
