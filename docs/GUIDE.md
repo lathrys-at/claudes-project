@@ -15,8 +15,12 @@ Pebble is a small Lisp interpreter written in Python. This guide teaches you the
 9. [Macros](#macros)
 10. [Error Handling](#error-handling)
 11. [Standard Library](#standard-library)
-12. [Multi-File Programs](#multi-file-programs)
-13. [Example Programs](#example-programs)
+12. [Pattern Matching](#pattern-matching)
+13. [Records](#records)
+14. [Lazy Evaluation and Streams](#lazy-evaluation-and-streams)
+15. [Advanced Standard Library](#advanced-standard-library)
+16. [Multi-File Programs](#multi-file-programs)
+17. [Example Programs](#example-programs)
 
 ---
 
@@ -788,6 +792,337 @@ Compose functions for elegant code:
 (define inc (lambda (x) (+ x 1)))
 (define inc-then-double (compose double inc))
 ((compose double inc) 5) ; => 12
+```
+
+---
+
+## Pattern Matching
+
+### The `match` Macro
+
+`match` is a powerful macro for destructuring and pattern matching. It compares a value against a series of patterns and evaluates the body of the first matching clause.
+
+Patterns can be:
+- **Literals** (numbers, strings, booleans) — match if equal
+- **Symbols** — bind the value to the symbol
+- **`_` wildcard** — matches any value without binding
+- **`nil`** — matches the empty list
+- **Quoted symbols** `'sym` — match if equal to that specific symbol
+- **Lists** `(P1 P2 ... Pn)` — match lists of exact length with recursive pattern matching
+- **Tail patterns** `(P1 ... Pn . REST)` — match lists of at least length n, binding remaining elements to REST
+
+**Simple literal matching:**
+
+```pebble
+(match 42
+  (42 "found it")
+  (_ "not found"))
+; => "found it"
+```
+
+**Variable binding:**
+
+```pebble
+(match (list 10 20 30)
+  ((a b c) (+ a b c))
+  (_ 0))
+; => 60
+```
+
+**Wildcard for unused values:**
+
+```pebble
+(match (list 1 2 3)
+  ((_ x _) x)
+  (_ nil))
+; => 2
+```
+
+**Tail patterns (rest binding):**
+
+```pebble
+(match (list 1 2 3 4)
+  ((first . rest) (list "first" first "rest" rest))
+  (_ nil))
+; => ("first" 1 "rest" (2 3 4))
+```
+
+**Quoted symbol patterns (for tagged dispatch):**
+
+```pebble
+(match 'add
+  ((quote add) (+ 5 3))
+  ((quote sub) (- 5 3))
+  ((quote mul) (* 5 3))
+  (_ 0))
+; => 8
+```
+
+**Nested patterns:**
+
+```pebble
+(match (list (list "x" 10) (list "y" 20))
+  (((_ val1) (_ val2)) (+ val1 val2))
+  (_ 0))
+; => 30
+```
+
+---
+
+## Records
+
+### Defining and Using Record Types
+
+`define-record` creates a new record (structured data) type with named fields. It automatically generates:
+- A **constructor** `make-NAME` that creates instances
+- A **predicate** `NAME?` that tests if a value is a record of that type
+- **Accessors** `NAME-FIELD` (read-only) for each field
+- **Mutators** `set-NAME-FIELD!` to update fields (records are mutable)
+
+**Creating a record type:**
+
+```pebble
+(define-record point (x y))
+```
+
+This defines:
+- `(make-point x y)` — constructor
+- `(point? v)` — type predicate
+- `(point-x p)` — accessor for x
+- `(point-y p)` — accessor for y
+- `(set-point-x! p v)` — mutator for x
+- `(set-point-y! p v)` — mutator for y
+
+**Constructing and accessing:**
+
+```pebble
+(define-record point (x y))
+(define p (make-point 3 4))
+(point-x p) ; => 3
+(point-y p) ; => 4
+```
+
+**Type checking:**
+
+```pebble
+(define-record point (x y))
+(point? (make-point 1 2)) ; => true
+(point? (list 1 2)) ; => false
+```
+
+**Mutable field updates:**
+
+```pebble
+(define-record person (name age))
+(define alice (make-person "Alice" 30))
+(set-person-age! alice 31)
+(person-age alice) ; => 31
+```
+
+**Multiple records in a program:**
+
+```pebble
+(define-record point (x y))
+(define-record circle (center radius))
+(define c (make-circle (make-point 0 0) 5))
+(point-x (circle-center c)) ; => 0
+```
+
+---
+
+## Lazy Evaluation and Streams
+
+### Promises with `delay` and `force`
+
+Pebble supports **lazy evaluation** through promises. A promise defers the evaluation of an expression until explicitly forced.
+
+**Creating a promise:**
+
+```pebble
+(define p (delay (+ 1 2)))
+(promise? p) ; => true
+```
+
+**Forcing a promise:**
+
+```pebble
+(force (delay (+ 1 2))) ; => 3
+(force (delay (* 5 6))) ; => 30
+```
+
+**Memoization — a promise caches its result:**
+
+```pebble
+(define counter (delay (begin (displayln "computing...") 42)))
+(force counter)
+; (prints "computing...")
+; => 42
+(force counter)
+; (no output — cached result is returned)
+; => 42
+```
+
+### Lazy Streams
+
+A **stream** is a lazy, infinite sequence. Streams are built using `stream-cons` (which delays the tail) and consumed with stream accessors.
+
+**Basic stream construction:**
+
+```pebble
+(define s (stream-cons 1 (stream-cons 2 (stream-cons 3 nil))))
+(stream-car s) ; => 1
+(stream-car (stream-cdr s)) ; => 2
+```
+
+**Infinite streams:**
+
+`integers-from` generates an infinite stream of consecutive integers:
+
+```pebble
+(stream-take (integers-from 1) 5) ; => (1 2 3 4 5)
+(stream-take (integers-from 10) 3) ; => (10 11 12)
+```
+
+**Stream mapping:**
+
+```pebble
+(stream-take (stream-map (lambda (x) (* x 2)) (integers-from 1)) 5)
+; => (2 4 6 8 10)
+```
+
+**Stream filtering:**
+
+```pebble
+(stream-take (stream-filter (lambda (x) (> x 5)) (integers-from 1)) 3)
+; => (6 7 8)
+```
+
+**Taking elements from a stream:**
+
+```pebble
+(stream-take (integers-from 0) 10)
+; => (0 1 2 3 4 5 6 7 8 9)
+```
+
+---
+
+## Advanced Standard Library
+
+Beyond the core functions, Pebble's standard library includes many powerful utilities for functional programming, data transformation, and numeric operations.
+
+### Sorting and Ordering
+
+**`sort`** — sorts a list in ascending order:
+
+```pebble
+(sort (list 3 1 4 1 5)) ; => (1 1 3 4 5)
+(sort (list "banana" "apple" "cherry")) ; => ("apple" "banana" "cherry")
+```
+
+**`sort-with`** — sorts with a custom predicate:
+
+```pebble
+(sort-with > (list 3 1 4 1 5)) ; => (5 4 3 1 1)
+```
+
+### List Filtering and Partitioning
+
+**`take-while`** — takes elements while a predicate is true:
+
+```pebble
+(take-while (lambda (x) (< x 5)) (list 1 2 3 5 6 3)) ; => (1 2 3)
+```
+
+**`partition`** — splits a list into two groups based on a predicate:
+
+```pebble
+(partition (lambda (x) (> x 2)) (list 1 2 3 4)) ; => ((3 4) (1 2))
+```
+
+### Grouping and Aggregating
+
+**`frequencies`** — counts occurrences of each element:
+
+```pebble
+(define freq (frequencies (list 1 2 2 3 3 3)))
+(hash-ref freq 1) ; => 1
+(hash-ref freq 2) ; => 2
+(hash-ref freq 3) ; => 3
+```
+
+**`group-by`** — groups elements by a key function:
+
+```pebble
+(define groups (group-by (lambda (x) (modulo x 2)) (list 1 2 3 4 5)))
+(hash-ref groups 0) ; => (2 4)
+(hash-ref groups 1) ; => (1 3 5)
+```
+
+### Function Utilities
+
+**`partial`** — creates a partially-applied function:
+
+```pebble
+(define add10 (partial + 10))
+(add10 5) ; => 15
+(add10 20) ; => 30
+```
+
+**`compose`** — composes two functions:
+
+```pebble
+(define double (lambda (x) (* x 2)))
+(define inc (lambda (x) (+ x 1)))
+(define inc-then-double (compose double inc))
+(inc-then-double 5) ; => 12
+```
+
+### Number Conversion
+
+**`number->binary`** — converts to binary string:
+
+```pebble
+(number->binary 13) ; => "1101"
+(number->binary 255) ; => "11111111"
+```
+
+**`number->hex`** — converts to hexadecimal string:
+
+```pebble
+(number->hex 255) ; => "ff"
+(number->hex 256) ; => "100"
+```
+
+### String Manipulation
+
+**`string-split`** — splits a string by a separator:
+
+```pebble
+(string-split "a,b,c" ",") ; => ("a" "b" "c")
+(string-split "hello world test" " ") ; => ("hello" "world" "test")
+```
+
+**`capitalize`** — uppercases the first character:
+
+```pebble
+(capitalize "hello") ; => "Hello"
+(capitalize "wORLD") ; => "WORLD"
+```
+
+### Statistics
+
+**`mean`** — arithmetic average:
+
+```pebble
+(mean (list 1 2 3 4 5)) ; => 3.0
+(mean (list 10 20)) ; => 15.0
+```
+
+**`median`** — middle value (or average of two middle values):
+
+```pebble
+(median (list 1 2 3 4 5)) ; => 3
+(median (list 1 2 3 4)) ; => 2.5
 ```
 
 ---
