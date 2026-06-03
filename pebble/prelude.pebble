@@ -1407,3 +1407,53 @@
                   (loop (+ mid 1) hi)
                   (loop lo (- mid 1)))))))))))
 
+; ===== COMBINATORICS FUNCTIONS =====
+
+; factorial: (factorial n) returns n! for a non-negative integer n
+; (factorial 0) is 1. Raises EvalError if n is not an integer or is negative.
+; Implemented tail-recursively with accumulator to handle large n.
+(define (factorial n)
+  (if (not (integer? n))
+    (error "factorial: n must be an integer"))
+  (if (< n 0)
+    (error "factorial: n must be non-negative"))
+  (define (factorial-helper n acc)
+    (if (= n 0)
+      acc
+      (factorial-helper (- n 1) (* acc n))))
+  (factorial-helper n 1))
+
+; permutations-count: (permutations-count n k) returns the number of k-permutations of n
+; Defined as n! / (n-k)!. Requires non-negative integers n and k.
+; If k > n, returns 0. (permutations-count n 0) is 1.
+; Uses exact integer arithmetic.
+(define (permutations-count n k)
+  (if (not (integer? n))
+    (error "permutations-count: n must be an integer"))
+  (if (not (integer? k))
+    (error "permutations-count: k must be an integer"))
+  (if (< n 0)
+    (error "permutations-count: n must be non-negative"))
+  (if (< k 0)
+    (error "permutations-count: k must be non-negative"))
+  (if (> k n)
+    0
+    (quotient (factorial n) (factorial (- n k)))))
+
+; combinations-count: (combinations-count n k) returns the binomial coefficient "n choose k"
+; Defined as n! / (k! * (n-k)!). Requires non-negative integers n and k.
+; If k > n, returns 0. (combinations-count n 0) and (combinations-count n n) are 1.
+; Uses exact integer arithmetic.
+(define (combinations-count n k)
+  (if (not (integer? n))
+    (error "combinations-count: n must be an integer"))
+  (if (not (integer? k))
+    (error "combinations-count: k must be an integer"))
+  (if (< n 0)
+    (error "combinations-count: n must be non-negative"))
+  (if (< k 0)
+    (error "combinations-count: k must be non-negative"))
+  (if (> k n)
+    0
+    (quotient (factorial n) (* (factorial k) (factorial (- n k))))))
+

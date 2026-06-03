@@ -556,6 +556,11 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `int->roman` — `(int->roman n)` converts an integer `n` (where 1 ≤ n ≤ 3999) to its Roman numeral string representation using standard subtractive notation (e.g., `(int->roman 944)` → `"CMXLIV"`). Raises an error if `n` is not an integer or is outside the valid range.
 - `roman->int` — `(roman->int s)` parses a Roman numeral string `s` and returns the integer value. Implements the standard left-to-right scanning rule: each letter's value is added, except when a letter's value is less than the letter immediately following it, in which case it is subtracted (e.g., `(roman->int "CMXLIV")` → `944`). Letter values: I=1, V=5, X=10, L=50, C=100, D=500, M=1000.
 
+**Combinatorics:**
+- `factorial` — `(factorial n)` returns `n!` for a non-negative integer `n`. `(factorial 0)` is 1. Implemented tail-recursively with an accumulator, so it handles large `n` without stack overflow. Works with arbitrary-precision integers. Raises an error if `n` is not an integer or is negative. Example: `(factorial 5)` → `120`, `(factorial 13)` → `6227020800`
+- `permutations-count` — `(permutations-count n k)` returns the number of k-permutations of n (ordered selections of k items from n items): `n! / (n-k)!`. Requires non-negative integers `n` and `k`. If `k > n`, returns 0. `(permutations-count n 0)` is 1. Uses exact integer arithmetic. Raises an error if `n` or `k` is not an integer or is negative. Example: `(permutations-count 5 2)` → `20`, `(permutations-count 10 3)` → `720`
+- `combinations-count` — `(combinations-count n k)` returns the binomial coefficient "n choose k" (unordered selections of k items from n items): `n! / (k! * (n-k)!)`. Requires non-negative integers `n` and `k`. If `k > n`, returns 0. `(combinations-count n 0)` and `(combinations-count n n)` are 1. Uses exact integer arithmetic. Raises an error if `n` or `k` is not an integer or is negative. Example: `(combinations-count 5 2)` → `10`, `(combinations-count 52 5)` → `2598960`
+
 **Higher-order functions:**
 - `compose` — function composition `(compose f g)` → `(lambda (x) (f (g x)))`
 - `const` — returns a constant function
