@@ -1534,3 +1534,50 @@
     ; Otherwise, recursively take the digital root of the digit-sum
     (digital-root (digit-sum n))))
 
+; ===== LIST COMBINATORICS =====
+
+; Helper for permutations: removes the first occurrence of x from lst
+; Returns a list with x removed if found; otherwise returns lst
+(define (remove-first lst x)
+  (if (null? lst)
+    nil
+    (if (= (car lst) x)
+      (cdr lst)
+      (cons (car lst) (remove-first (cdr lst) x)))))
+
+; permutations: (permutations lst) returns a list of all permutations of lst
+; Each permutation is a list. The result is a list of lists.
+; (permutations nil) -> (()) (a list containing one empty list)
+; (permutations (list 1 2)) -> ((1 2) (2 1)) (in some order)
+; For n distinct elements, there are n! permutations.
+(define (permutations lst)
+  (if (null? lst)
+    ; Base case: empty list -> list containing one empty list
+    (list nil)
+    ; Recursive case: for each element in lst,
+    ; prepend it to all permutations of the rest (lst without that element)
+    (foldl
+      (lambda (acc elem)
+        (let ((rest (remove-first lst elem)))
+          (let ((perms-of-rest (permutations rest)))
+            (append acc (map (lambda (perm) (cons elem perm)) perms-of-rest)))))
+      nil
+      lst)))
+
+; power-set: (power-set lst) returns a list of all subsets of lst
+; Each subset is a list. The result is a list of lists.
+; (power-set nil) -> (()) (a list containing one empty list)
+; (power-set (list 1 2)) -> ((1 2) (1) (2) ()) (in some order)
+; For n elements, there are 2^n subsets.
+(define (power-set lst)
+  (if (null? lst)
+    ; Base case: empty list -> list containing one empty list
+    (list nil)
+    ; Recursive case: power-set of (cons x rest)
+    ; = (power-set rest) + each of those subsets with x prepended
+    (let ((rest-power-set (power-set (cdr lst)))
+          (x (car lst)))
+      (append
+        rest-power-set
+        (map (lambda (subset) (cons x subset)) rest-power-set)))))
+
