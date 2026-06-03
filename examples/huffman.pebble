@@ -1,0 +1,193 @@
+;;; Huffman Coding - compression and decompression library
+;;; Implements character frequency analysis, Huffman tree construction,
+;;; code generation, and encoding/decoding.
+
+;;; Helper: cadddr - get the 4th element of a list
+(define (cadddr x) (car (cdr (cdr (cdr x)))))
+
+;;; Represent a Huffman tree node as a list.
+;;; Leaf node: (list "leaf" char weight)
+;;; Internal node: (list "internal" weight left right)
+
+;;; (make-leaf char weight) - create a leaf node
+(define (make-leaf char weight)
+  (list "leaf" char weight))
+
+;;; (leaf? node) - test if node is a leaf
+(define (leaf? node)
+  (and (list? node) (= (length node) 3) (= (car node) "leaf")))
+
+;;; (leaf-char node) - extract character from leaf
+(define (leaf-char node)
+  (cadr node))
+
+;;; (leaf-weight node) - extract weight from leaf
+(define (leaf-weight node)
+  (caddr node))
+
+;;; (make-internal left right) - create an internal node with combined weight
+(define (make-internal left right)
+  (let ((weight (+ (node-weight left) (node-weight right))))
+    (list "internal" weight left right)))
+
+;;; (internal? node) - test if node is internal
+(define (internal? node)
+  (and (list? node) (= (length node) 4) (= (car node) "internal")))
+
+;;; (internal-weight node) - extract weight from internal node
+(define (internal-weight node)
+  (cadr node))
+
+;;; (internal-left node) - extract left subtree
+(define (internal-left node)
+  (caddr node))
+
+;;; (internal-right node) - extract right subtree
+(define (internal-right node)
+  (cadddr node))
+
+;;; (node-weight node) - get weight of any node
+(define (node-weight node)
+  (if (leaf? node)
+    (leaf-weight node)
+    (internal-weight node)))
+
+;;; (char-frequencies str) - count character frequencies
+;;; Returns a hash map from character (single-char string) to count (integer)
+(define (char-frequencies str)
+  (foldl
+    (lambda (freq-map i)
+      (let ((ch (substring str i (+ i 1))))
+        (hash-update freq-map ch inc 0)))
+    (make-hash)
+    (range (string-length str))))
+
+;;; (build-huffman-tree freq) - build Huffman tree from frequency hash map
+;;; Uses the standard Huffman algorithm: repeatedly combine two smallest-weight nodes
+;;; until one tree remains. For a single character, still produces a valid tree.
+(define (build-huffman-tree freq)
+  (let ((chars (hash-keys freq)))
+    (if (null? chars)
+      nil  ; Empty string case
+      (let ()
+        ; Build initial priority queue of leaf nodes: list of (list weight leaf-node)
+        (define (build-initial-queue)
+          (let ((q (sort-with
+                    (lambda (a b) (< (car a) (car b)))
+                    (map
+                      (lambda (ch)
+                        (let ((weight (hash-ref freq ch)))
+                          (list weight (make-leaf ch weight))))
+                      chars))))
+            q))
+
+        ; Repeatedly merge smallest two nodes
+        (define (merge-all queue)
+          (if (= (length queue) 1)
+            (cadr (car queue))  ; Return the root tree
+            (let* ((first (car queue))
+                   (second (cadr queue))
+                   (rest (cddr queue))
+                   (left-tree (cadr first))
+                   (right-tree (cadr second))
+                   (new-tree (make-internal left-tree right-tree))
+                   (new-weight (node-weight new-tree))
+                   (new-queue (sort-with
+                               (lambda (a b) (< (car a) (car b)))
+                               (append rest (list (list new-weight new-tree))))))
+              (merge-all new-queue))))
+
+        (merge-all (build-initial-queue))))))
+
+;;; (huffman-codes tree) - generate code table from Huffman tree
+;;; Returns a hash map from character to code (string of "0"s and "1"s)
+;;; Special case: single-character tree gets code "0"
+(define (huffman-codes tree)
+  (define (encode-tree node prefix)
+    (if (leaf? node)
+      (list (list (leaf-char node) prefix))  ; List of [char code] pairs
+      (let ((left-codes (encode-tree (internal-left node) (string-append prefix "0")))
+            (right-codes (encode-tree (internal-right node) (string-append prefix "1"))))
+        (append left-codes right-codes))))
+
+  (if (null? tree)
+    (make-hash)
+    (let ((codes (if (leaf? tree)
+                   (list (list (leaf-char tree) "0"))  ; Single-char special case
+                   (encode-tree tree ""))))
+      (foldl
+        (lambda (code-map pair)
+          (hash-set code-map (car pair) (cadr pair)))
+        (make-hash)
+        codes))))
+
+;;; (huffman-encode str) - encode a string using Huffman coding
+;;; Returns a two-element list: (list tree bits)
+;;; where tree is the Huffman tree and bits is the encoded bit string
+(define (huffman-encode str)
+  (if (= (string-length str) 0)
+    (list nil "")  ; Empty string: nil tree and empty bits
+    (let ((freq (char-frequencies str)))
+      (let ((tree (build-huffman-tree freq)))
+        (let ((codes (huffman-codes tree)))
+          (let ((bits (foldl
+                        (lambda (acc i)
+                          (let ((ch (substring str i (+ i 1))))
+                            (string-append acc (hash-ref codes ch))))
+                        ""
+                        (range (string-length str)))))
+            (list tree bits)))))))
+
+;;; (huffman-decode tree bits) - decode a bit string using Huffman tree
+;;; Returns the original decoded string
+(define (huffman-decode tree bits)
+  (if (or (null? tree) (= (string-length bits) 0))
+    ""  ; Empty tree or empty bits yields empty string
+    (let ()
+      (define (decode-helper tree-root bits idx current-node)
+        (if (>= idx (string-length bits))
+          ; End of bits: current-node should be a leaf; extract its character
+          (if (leaf? current-node)
+            (leaf-char current-node)
+            "")  ; Error case, shouldn't happen with valid input
+          ; More bits: follow the tree
+          (let ((bit (substring bits idx (+ idx 1))))
+            (let ((next-node (if (= bit "0")
+                               (if (leaf? current-node)
+                                 (error "Invalid bit sequence")
+                                 (internal-left current-node))
+                               (if (leaf? current-node)
+                                 (error "Invalid bit sequence")
+                                 (internal-right current-node)))))
+              (if (leaf? next-node)
+                ; Hit a leaf: output its character and continue from root
+                (string-append (leaf-char next-node)
+                               (decode-helper tree-root bits (+ idx 1) tree-root))
+                ; Continue down the tree
+                (decode-helper tree-root bits (+ idx 1) next-node))))))
+
+      (if (leaf? tree)
+        ; Special case: single-character tree, bits are all "0"s
+        (let ((count (string-length bits)))
+          (if (> count 0)
+            (string-repeat (leaf-char tree) count)
+            ""))
+        (decode-helper tree bits 0 tree)))))
+
+;;; Helper: string-repeat (repeat a string n times)
+(define (string-repeat s n)
+  (if (= n 0)
+    ""
+    (string-append s (string-repeat s (- n 1)))))
+
+;;; Demo
+(displayln "Huffman Coding Example")
+(define test-str "hello world")
+(define encoded (huffman-encode test-str))
+(define tree (car encoded))
+(define bits (cadr encoded))
+(displayln (string-append "Original: " test-str))
+(displayln (string-append "Encoded bits: " bits))
+(define decoded (huffman-decode tree bits))
+(displayln (string-append "Decoded: " decoded))
+(displayln (string-append "Match: " (if (= test-str decoded) "true" "false")))
