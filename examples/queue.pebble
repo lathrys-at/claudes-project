@@ -1,0 +1,53 @@
+;;; Immutable FIFO Queue
+;;; Implements a queue using the two-list (banker's queue) technique.
+;;;
+;;; A queue is represented as a two-element list (front back) where:
+;;; - front: list of elements in dequeue order (oldest at head)
+;;; - back: list of recently-enqueued elements in REVERSE order (newest at head)
+;;;
+;;; This design allows O(1) amortized enqueue and dequeue operations.
+
+; make-queue: returns an empty queue
+(define (make-queue)
+  (list nil nil))
+
+; queue-empty?: returns true iff the queue is empty
+(define (queue-empty? q)
+  (and (null? (car q)) (null? (cadr q))))
+
+; queue-size: returns the total number of elements in the queue
+(define (queue-size q)
+  (+ (length (car q)) (length (cadr q))))
+
+; enqueue: returns a new queue with x added to the back
+; The original queue q is not modified (immutability)
+(define (enqueue q x)
+  (list (car q) (cons x (cadr q))))
+
+; queue->list: returns the elements in FIFO (dequeue) order
+; Appends the front list with the reverse of the back list
+(define (queue->list q)
+  (append (car q) (reverse (cadr q))))
+
+; dequeue: returns a two-element list (value new-queue)
+; where value is the front element and new-queue is the queue with that element removed.
+; If the front list is non-empty, the first element is taken from it.
+; If the front list is empty but the back list is non-empty, the back is reversed
+; to become the new front, then its first element is taken.
+; If the queue is empty, raises an error.
+(define (dequeue q)
+  (let ((front (car q))
+        (back (cadr q)))
+    (if (not (null? front))
+      ; Front is non-empty: take from front
+      (list (car front) (list (cdr front) back))
+      ; Front is empty
+      (if (not (null? back))
+        ; Back is non-empty: reverse back to become new front, then take from it
+        (let ((new-front (reverse back)))
+          (list (car new-front) (list (cdr new-front) nil)))
+        ; Both empty: error
+        (error "dequeue: empty queue")))))
+
+; Demo: create a queue, enqueue 1, 2, 3, and print the result
+(displayln (queue->list (enqueue (enqueue (enqueue (make-queue) 1) 2) 3)))
