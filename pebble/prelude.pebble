@@ -773,6 +773,18 @@
 (define (unlines lst)
   (string-join lst "\n"))
 
+; palindrome?: (palindrome? s) returns true iff string s reads the same forwards and backwards
+; Case-sensitive; all characters count. Empty string and single-character strings are palindromes.
+(define (palindrome? s)
+  (= s (string-reverse s)))
+
+; anagram?: (anagram? a b) returns true iff strings a and b are anagrams of each other
+; Case-sensitive; all characters count.
+; Two strings are anagrams iff they contain exactly the same characters with the same multiplicities.
+; Implementation: sort the characters of each string and compare
+(define (anagram? a b)
+  (= (sort (string->list a)) (sort (string->list b))))
+
 ; capitalize: (capitalize s) returns s with its FIRST character uppercased and the rest UNCHANGED
 (define (capitalize s)
   (if (= (string-length s) 0)
