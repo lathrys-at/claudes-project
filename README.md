@@ -552,6 +552,11 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `binary->number` — `(binary->number s)` parses a binary string and returns the integer value
 - `hex->number` — `(hex->number s)` parses a hexadecimal string and returns the integer value
 
+**Digit manipulation:**
+- `digits` — `(digits n)` returns a list of the decimal digits of a non-negative integer `n`, in order from most significant (left) to least significant (right). For example, `(digits 12345)` → `(1 2 3 4 5)`. `(digits 0)` → `(0)`. `(digits 100)` → `(1 0 0)`. Raises an error if `n` is not an integer or is negative.
+- `digit-sum` — `(digit-sum n)` returns the sum of the decimal digits of a non-negative integer `n`. Equivalent to `(sum (digits n))`. For example, `(digit-sum 12345)` → `15` (1+2+3+4+5), `(digit-sum 99)` → `18`. Raises an error if `n` is not an integer or is negative.
+- `digital-root` — `(digital-root n)` returns the digital root of a non-negative integer `n`: the single digit obtained by repeatedly summing the digits until a value in the range 0-9 is reached. For example, `(digital-root 12345)` → `6` (digits sum to 15, then 1+5=6), `(digital-root 9875)` → `2` (29 → 11 → 2). `(digital-root 0)` → `0`. For single-digit inputs (0-9), returns the input unchanged. Raises an error if `n` is not an integer or is negative.
+
 **Roman numeral conversion:**
 - `int->roman` — `(int->roman n)` converts an integer `n` (where 1 ≤ n ≤ 3999) to its Roman numeral string representation using standard subtractive notation (e.g., `(int->roman 944)` → `"CMXLIV"`). Raises an error if `n` is not an integer or is outside the valid range.
 - `roman->int` — `(roman->int s)` parses a Roman numeral string `s` and returns the integer value. Implements the standard left-to-right scanning rule: each letter's value is added, except when a letter's value is less than the letter immediately following it, in which case it is subtracted (e.g., `(roman->int "CMXLIV")` → `944`). Letter values: I=1, V=5, X=10, L=50, C=100, D=500, M=1000.

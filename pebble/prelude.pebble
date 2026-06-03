@@ -1486,3 +1486,51 @@
     nil
     (filter prime? (range 2 (+ n 1)))))
 
+; ===== DIGIT MANIPULATION FUNCTIONS =====
+
+; digits: (digits n) returns the list of decimal digits of a non-negative integer n
+; in order from most significant (left) to least significant (right).
+; (digits 0) -> (0), (digits 12345) -> (1 2 3 4 5)
+; Raises EvalError if n is not an integer or is negative.
+(define (digits n)
+  (if (not (integer? n))
+    (error "digits: n must be an integer"))
+  (if (< n 0)
+    (error "digits: n must be non-negative"))
+  ; Special case: n = 0
+  (if (= n 0)
+    (list 0)
+    ; General case: extract digits by repeatedly taking modulo 10 and dividing by 10
+    (let ()
+      (define (extract-digits n acc)
+        (if (= n 0)
+          acc
+          (extract-digits (quotient n 10) (cons (modulo n 10) acc))))
+      (extract-digits n nil))))
+
+; digit-sum: (digit-sum n) returns the sum of the decimal digits of a non-negative integer n.
+; (digit-sum 12345) -> 15, (digit-sum 0) -> 0
+; Raises EvalError if n is not an integer or is negative.
+(define (digit-sum n)
+  (if (not (integer? n))
+    (error "digit-sum: n must be an integer"))
+  (if (< n 0)
+    (error "digit-sum: n must be non-negative"))
+  (sum (digits n)))
+
+; digital-root: (digital-root n) returns the digital root of a non-negative integer n.
+; The digital root is obtained by repeatedly summing digits until a single digit (0..9) remains.
+; (digital-root 12345) -> 6 (1+2+3+4+5=15, then 1+5=6)
+; (digital-root 9875) -> 2 (9+8+7+5=29, then 2+9=11, then 1+1=2)
+; Raises EvalError if n is not an integer or is negative.
+(define (digital-root n)
+  (if (not (integer? n))
+    (error "digital-root: n must be an integer"))
+  (if (< n 0)
+    (error "digital-root: n must be non-negative"))
+  ; If n is already a single digit, return it
+  (if (< n 10)
+    n
+    ; Otherwise, recursively take the digital root of the digit-sum
+    (digital-root (digit-sum n))))
+
