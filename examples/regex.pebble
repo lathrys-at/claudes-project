@@ -1,28 +1,65 @@
 ;;; Simple regular expression engine
 ;;; Supports: literals, ., *, +, ?, ^, $, [], [^...], backslash escapes
 
+;;; Expand character ranges in a class body
+;;; Interprets hyphen between two characters as an inclusive range
+;;; Hyphens at the start/end are literal
+(define (expand-class-ranges chars)
+  (define (range-char-list start-char end-char)
+    (let ((start-code (char->integer start-char))
+          (end-code (char->integer end-char)))
+      (define (loop code acc)
+        (if (> code end-code)
+          (reverse acc)
+          (loop (+ code 1) (cons (integer->char code) acc))))
+      (loop start-code nil)))
+
+  (define (process-chars remaining result)
+    (if (null? remaining)
+      (reverse result)
+      (let ((current (car remaining))
+            (rest (cdr remaining)))
+        (if (and (not (null? rest)) (not (null? (cdr rest))) (= (car rest) "-"))
+          (let ((next-char (cadr rest)))
+            (let ((expanded (range-char-list current next-char)))
+              (process-chars (cddr rest) (append expanded result))))
+          (process-chars rest (cons current result))))))
+
+  (process-chars chars nil))
+
 ;;; Build a character class matcher
 (define (make-class-matcher class-str negated)
-  (let ((chars (string->list class-str)))
+  (let ((expanded (expand-class-ranges (string->list class-str))))
     (lambda (c)
-      (let ((found (contains? chars c)))
+      (let ((found (contains? expanded c)))
         (if negated (not found) found)))))
+
+;;; Find the position of ] starting from start, returns -1 if not found
+(define (find-closing-bracket pattern start)
+  (define (loop idx)
+    (if (>= idx (string-length pattern))
+      -1
+      (if (= (char-at pattern idx) "]")
+        idx
+        (loop (+ idx 1)))))
+  (loop start))
 
 ;;; Parse a character class at position
 (define (parse-class pattern pos)
   (let ((negated (= (char-at pattern pos) "^")))
     (let ((start (if negated (+ pos 1) pos)))
-      (let ((end (string-index pattern "]" start)))
+      (let ((end (find-closing-bracket pattern start)))
         (if (= end -1)
           (error "Unclosed character class")
           (list (make-class-matcher (substring pattern start end) negated)
                 (+ end 1)))))))
 
 ;;; Test if element matches character
+;;; The wildcard is represented as the symbol 'wildcard
 (define (test-element elem c)
   (cond
     ((procedure? elem) (elem c))
-    ((= elem ".") true)
+    ((symbol? elem) (if (= (symbol->string elem) "wildcard") true false))
     (else (= elem c))))
 
 ;;; Count consecutive matches
@@ -55,26 +92,32 @@
                      (+ cnt rest)
                      (loop (- cnt 1))))))))
           ((= q "+")
-           (if (not (test-element e text pos))
+           (if (>= pos (string-length text))
              false
-             (let ((max-cnt (+ 1 (count-match e text (+ pos 1)))))
-               (let loop ((cnt max-cnt))
-                 (if (< cnt 1)
-                   false
-                   (let ((rest (try-rest cnt)))
-                     (if rest
-                       (+ cnt rest)
-                       (loop (- cnt 1)))))))))
+             (if (not (test-element e (char-at text pos)))
+               false
+               (let ((max-cnt (+ 1 (count-match e text (+ pos 1)))))
+                 (let loop ((cnt max-cnt))
+                   (if (< cnt 1)
+                     false
+                     (let ((rest (try-rest cnt)))
+                       (if rest
+                         (+ cnt rest)
+                         (loop (- cnt 1))))))))))
           ((= q "?")
-           (let ((with (try-rest 1)))
-             (if with
-               (if (test-element e text pos) (+ 1 with) with)
-               (try-rest 0))))
+           (if (and (< pos (string-length text)) (test-element e (char-at text pos)))
+             (let ((with (try-rest 1)))
+               (if with
+                 (+ 1 with)
+                 (try-rest 0)))
+             (try-rest 0)))
           (else
-           (if (test-element e text pos)
-             (let ((rest (try-rest 1)))
-               (if rest (+ 1 rest) false))
-             false)))))))
+           (if (>= pos (string-length text))
+             false
+             (if (test-element e (char-at text pos))
+               (let ((rest (try-rest 1)))
+                 (if rest (+ 1 rest) false))
+               false))))))))
 
 ;;; Parse pattern to get elements and quantifiers
 (define (parse-pat pattern)
@@ -112,7 +155,7 @@
           ((= c ".")
            (let ((q-info (parse-quant (+ idx 1))))
              (loop (cadr q-info)
-                   (cons "." elems)
+                   (cons (string->symbol "wildcard") elems)
                    (cons (car q-info) quants))))
           ((or (= c "^") (= c "$") (= c "*") (= c "+") (= c "?"))
            (loop (+ idx 1) elems quants))
@@ -166,4 +209,3 @@
 (displayln (regex-match "ab+c" "ac"))
 (displayln (regex-match "^cat" "cat dog"))
 (displayln (regex-match "[0-9]+" "abc123def"))
-
