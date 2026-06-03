@@ -1,0 +1,51 @@
+;;; Integer-to-English-words converter (0-9999)
+;;; Converts integers from 0 to 9999 into their English word representation.
+
+(define ones
+  (list "zero" "one" "two" "three" "four" "five" "six" "seven" "eight" "nine"
+        "ten" "eleven" "twelve" "thirteen" "fourteen" "fifteen" "sixteen"
+        "seventeen" "eighteen" "nineteen"))
+
+(define tens
+  (list "" "" "twenty" "thirty" "forty" "fifty" "sixty" "seventy" "eighty" "ninety"))
+
+(define (number->words n)
+  ; Validate input: must be an integer in range 0..9999
+  (if (not (integer? n))
+    (error "number->words requires an integer")
+    (if (or (< n 0) (> n 9999))
+      (error "number->words requires a number between 0 and 9999")
+      (if (= n 0)
+        "zero"
+        (words-helper n)))))
+
+(define (words-helper n)
+  ; Helper function to recursively build the words for n > 0
+  (cond
+    ; 1-19: use ones list
+    ((<= n 19)
+     (nth ones n))
+    ; 20-99: use tens and ones
+    ((< n 100)
+     (let ((tens-digit (quotient n 10))
+           (ones-digit (modulo n 10)))
+       (if (= ones-digit 0)
+         (nth tens tens-digit)
+         (string-append (nth tens tens-digit) "-" (nth ones ones-digit)))))
+    ; 100-999: hundreds + remainder
+    ((< n 1000)
+     (let ((hundreds-digit (quotient n 100))
+           (remainder (modulo n 100)))
+       (if (= remainder 0)
+         (string-append (nth ones hundreds-digit) " hundred")
+         (string-append (nth ones hundreds-digit) " hundred " (words-helper remainder)))))
+    ; 1000-9999: thousands + remainder
+    (else
+     (let ((thousands-digit (quotient n 1000))
+           (remainder (modulo n 1000)))
+       (if (= remainder 0)
+         (string-append (nth ones thousands-digit) " thousand")
+         (string-append (nth ones thousands-digit) " thousand " (words-helper remainder)))))))
+
+; Demo: display the result for 2024
+(displayln (number->words 2024))
