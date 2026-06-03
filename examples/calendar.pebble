@@ -1,0 +1,90 @@
+;;; Calendar/Date Library
+;;; A proleptic Gregorian calendar library with date manipulation functions.
+
+;; (leap-year? y): boolean -- true iff year y is a Gregorian leap year
+(define (leap-year? y)
+  (or (and (= (modulo y 4) 0) (not (= (modulo y 100) 0)))
+      (= (modulo y 400) 0)))
+
+;; (days-in-month y m): integer -- the number of days in month m (1..12) of year y
+(define (days-in-month y m)
+  (cond
+    ((or (= m 1) (= m 3) (= m 5) (= m 7) (= m 8) (= m 10) (= m 12)) 31)
+    ((or (= m 4) (= m 6) (= m 9) (= m 11)) 30)
+    ((= m 2)
+     (if (leap-year? y) 29 28))
+    (else
+     (error (string-append "days-in-month: invalid month " (number->string m))))))
+
+;; (valid-date? y m d): boolean -- true iff (y, m, d) is a valid calendar date
+(define (valid-date? y m d)
+  (and (>= y 1)
+       (>= m 1) (<= m 12)
+       (>= d 1) (<= d (days-in-month y m))))
+
+;; Helper: Day-of-year helper function to accumulate days
+(define (day-of-year-helper y m acc)
+  (if (< m 1)
+    acc
+    (day-of-year-helper y (- m 1) (+ acc (days-in-month y m)))))
+
+;; (day-of-year y m d): integer in 1..366 -- the ordinal day within the year
+(define (day-of-year y m d)
+  (+ (day-of-year-helper y (- m 1) 0) d))
+
+;; Helper: Convert date to absolute day count since a fixed epoch (year 0, month 1, day 1)
+;; We use the formula: total days = (years - 1) * 365 + leap years before y + day of year
+(define (date->absolute y m d)
+  (let ((leap-years-before (quotient (- y 1) 4))
+        (centuries-before (quotient (- y 1) 100))
+        (quad-centuries-before (quotient (- y 1) 400)))
+    (+ (* (- y 1) 365)
+       leap-years-before
+       (- centuries-before)
+       quad-centuries-before
+       (day-of-year y m d))))
+
+;; (days-between y1 m1 d1 y2 m2 d2): integer -- signed days to add to first date to reach second
+(define (days-between y1 m1 d1 y2 m2 d2)
+  (- (date->absolute y2 m2 d2)
+     (date->absolute y1 m1 d1)))
+
+;; (day-of-week y m d): string -- English weekday name (Monday..Sunday)
+;; Using Zeller's congruence (adjusted for proleptic Gregorian)
+(define (day-of-week y m d)
+  (let* ((adj-m (if (< m 3) (+ m 12) m))
+         (adj-y (if (< m 3) (- y 1) y))
+         (k (modulo adj-y 100))
+         (j (quotient adj-y 100))
+         ;; Zeller: h = (d + floor(13*(m+1)/5) + k + floor(k/4) + floor(j/4) - 2*j) mod 7
+         ;; where h=0 is Saturday, h=1 is Sunday, etc.
+         (h (modulo (+ d
+                       (quotient (* 13 (+ adj-m 1)) 5)
+                       k
+                       (quotient k 4)
+                       (quotient j 4)
+                       (- (* 2 j)))
+                    7)))
+    ;; Convert Zeller's h to weekday name: h=0->Sat, 1->Sun, 2->Mon, ..., 6->Fri
+    ;; We want: Monday=0, Tuesday=1, ..., Sunday=6 in our list
+    ;; Zeller: 0=Sat, 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri
+    ;; Shift: (h + 5) mod 7 gives us: Sat->5, Sun->6, Mon->0, Tue->1, Wed->2, Thu->3, Fri->4
+    ;; Then map via list
+    (let ((day-names (list "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday" "Sunday"))
+          (index (modulo (+ h 5) 7)))
+      (nth day-names index))))
+
+;; (date->string y m d): string -- ISO format "YYYY-MM-DD" with zero-padded month/day
+(define (date->string y m d)
+  (let ((year-str (number->string y))
+        (month-str (string-pad-left (number->string m) 2 "0"))
+        (day-str (string-pad-left (number->string d) 2 "0")))
+    (string-append year-str "-" month-str "-" day-str)))
+
+;; Demo: display some example dates
+(displayln (date->string 2026 6 3))
+(displayln (string-append "2026-06-03 is a " (day-of-week 2026 6 3)))
+(displayln (string-append "Day 154 of 2026: " (number->string (day-of-year 2026 6 3))))
+(displayln (string-append "Days between 2026-01-01 and 2026-06-03: " (number->string (days-between 2026 1 1 2026 6 3))))
+(displayln (string-append "2024 is leap year: " (if (leap-year? 2024) "true" "false")))
+(displayln (string-append "2025 is leap year: " (if (leap-year? 2025) "true" "false")))

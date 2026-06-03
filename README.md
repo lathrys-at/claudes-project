@@ -105,6 +105,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/tictactoe.pebble` — Tic-tac-toe win detection checking rows, columns, and diagonals
 - `examples/queue.pebble` — Immutable FIFO queue using the two-list (banker's queue) technique
 - `examples/rational.pebble` — Exact rational number (fraction) arithmetic with canonical normalization
+- `examples/calendar.pebble` — Proleptic Gregorian calendar library with date validation, weekday calculation, and date arithmetic
 
 Run any example directly:
 
@@ -112,7 +113,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_bank_account.py`, `tests/test_collatz.py`, `tests/test_edit_distance.py`, `tests/test_hanoi.py`, `tests/test_huffman.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, `tests/test_heap.py`, `tests/test_metacircular.py`, `tests/test_cipher.py`, `tests/test_vigenere.py`, `tests/test_number_words.py`, `tests/test_nqueens.py`, `tests/test_queue.py`, and `tests/test_rational.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_bank_account.py`, `tests/test_collatz.py`, `tests/test_edit_distance.py`, `tests/test_hanoi.py`, `tests/test_huffman.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, `tests/test_heap.py`, `tests/test_metacircular.py`, `tests/test_cipher.py`, `tests/test_vigenere.py`, `tests/test_number_words.py`, `tests/test_nqueens.py`, `tests/test_queue.py`, `tests/test_rational.py`, and `tests/test_calendar.py`.
 
 ## Design
 
