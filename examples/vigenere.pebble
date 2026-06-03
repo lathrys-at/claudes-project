@@ -1,0 +1,70 @@
+;;; Vigenère cipher - polyalphabetic substitution cipher
+;;; Each letter is shifted by an amount determined by the corresponding key letter.
+;;; Non-alphabetic characters pass through unchanged and do not consume a key character.
+;;; Case is preserved in both text and key.
+
+(define (shift-char-by char shift)
+  "Shift a single character by shift positions within its case, wrapping around."
+  (let ((code (char->integer char)))
+    (cond
+      ; lowercase letter (97-122)
+      ((and (>= code 97) (<= code 122))
+       (let ((shifted (+ (- code 97) shift)))
+         (integer->char (+ 97 (modulo shifted 26)))))
+      ; uppercase letter (65-90)
+      ((and (>= code 65) (<= code 90))
+       (let ((shifted (+ (- code 65) shift)))
+         (integer->char (+ 65 (modulo shifted 26)))))
+      ; non-letter: return unchanged
+      (else char))))
+
+(define (char-key-value key-char)
+  "Get the numeric value (0-25) of a key character (a/A=0, z/Z=25)."
+  (let ((code (char->integer (char-downcase key-char))))
+    (- code 97)))
+
+(define (vigenere-encrypt text key)
+  "Encrypt text using Vigenère cipher with given key.
+   The key is cycled over alphabetic characters only;
+   non-letters pass through unchanged and do not consume a key character."
+  (let ((text-chars (string->list text))
+        (key-chars (string->list key))
+        (key-len (string-length key)))
+    ; Process text characters with a helper function
+    (let ((result (let loop ((chars text-chars) (key-idx 0) (acc nil))
+                    (if (null? chars)
+                      (reverse acc)
+                      (let ((c (car chars)))
+                        (if (char-alpha? c)
+                          ; Letter: shift by key and advance key index
+                          (let ((shift (char-key-value (list-ref key-chars (modulo key-idx key-len)))))
+                            (loop (cdr chars)
+                                  (+ key-idx 1)
+                                  (cons (shift-char-by c shift) acc)))
+                          ; Non-letter: pass through unchanged
+                          (loop (cdr chars) key-idx (cons c acc))))))))
+      (list->string result))))
+
+(define (vigenere-decrypt text key)
+  "Decrypt text using Vigenère cipher with given key.
+   Inverse of vigenere-encrypt: shifts backward by key amounts."
+  (let ((text-chars (string->list text))
+        (key-chars (string->list key))
+        (key-len (string-length key)))
+    (let ((result (let loop ((chars text-chars) (key-idx 0) (acc nil))
+                    (if (null? chars)
+                      (reverse acc)
+                      (let ((c (car chars)))
+                        (if (char-alpha? c)
+                          ; Letter: shift backward by key and advance key index
+                          (let ((shift (char-key-value (list-ref key-chars (modulo key-idx key-len)))))
+                            (loop (cdr chars)
+                                  (+ key-idx 1)
+                                  (cons (shift-char-by c (- shift)) acc)))
+                          ; Non-letter: pass through unchanged
+                          (loop (cdr chars) key-idx (cons c acc))))))))
+      (list->string result))))
+
+; Demo output
+(displayln (vigenere-encrypt "HELLO" "KEY"))
+(displayln (vigenere-encrypt "attackatdawn" "lemon"))

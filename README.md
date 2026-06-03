@@ -88,6 +88,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/hanoi.pebble` — Towers of Hanoi solver returning the sequence of moves
 - `examples/calculator.pebble` — Arithmetic expression evaluator with operator precedence and parentheses
 - `examples/cipher.pebble` — Caesar cipher / ROT13 text transformer
+- `examples/vigenere.pebble` — Vigenère polyalphabetic cipher with key cycling and case preservation
 - `examples/metacircular.pebble` — A tiny Lisp interpreter written in Pebble, supporting lambda, closures, recursion, and define
 - `examples/json.pebble` — JSON (subset) parser and serializer for objects, arrays, strings, integers, and booleans
 - `examples/matrix.pebble` — A small matrix library: transpose, multiply, add, identity
@@ -107,7 +108,7 @@ Run any example directly:
 python -m pebble examples/fizzbuzz.pebble
 ```
 
-All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_bank_account.py`, `tests/test_collatz.py`, `tests/test_edit_distance.py`, `tests/test_hanoi.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, `tests/test_heap.py`, `tests/test_metacircular.py`, `tests/test_cipher.py`, `tests/test_number_words.py`, and `tests/test_queue.py`.
+All examples are covered by tests in `tests/test_examples.py`, `tests/test_bst.py`, `tests/test_bfs.py`, `tests/test_bank_account.py`, `tests/test_collatz.py`, `tests/test_edit_distance.py`, `tests/test_hanoi.py`, `tests/test_json.py`, `tests/test_matrix.py`, `tests/test_rpn.py`, `tests/test_streams.py`, `tests/test_primes.py`, `tests/test_brainfuck.py`, `tests/test_heap.py`, `tests/test_metacircular.py`, `tests/test_cipher.py`, `tests/test_vigenere.py`, `tests/test_number_words.py`, and `tests/test_queue.py`.
 
 ## Design
 
