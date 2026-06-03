@@ -420,6 +420,41 @@
       (car lst)
       (find pred (cdr lst)))))
 
+; scanl: (scanl f init lst) returns a list of successive accumulator values from a left fold
+; Result has length (+ (length lst) 1): starts with init, then each (f acc x) for x in lst
+; Stack-safe implementation using tail-recursive helper with accumulator and reverse
+; Example: (scanl + 0 (list 1 2 3 4)) -> (0 1 3 6 10)
+(define (scanl f init lst)
+  (define (scanl-helper f acc lst acc-list)
+    (if (null? lst)
+      (reverse acc-list)
+      (let ((next-acc (f acc (car lst))))
+        (scanl-helper f next-acc (cdr lst) (cons next-acc acc-list)))))
+  (scanl-helper f init lst (list init)))
+
+; tabulate: (tabulate f n) returns a list ((f 0) (f 1) ... (f (- n 1)))
+; n must be a non-negative integer (raises EvalError otherwise)
+; (tabulate f 0) is the empty list
+; Implementation: (map f (range n))
+(define (tabulate f n)
+  (if (not (integer? n))
+    (error "tabulate: n must be an integer")
+    (if (< n 0)
+      (error "tabulate: n must be non-negative")
+      (map f (range n)))))
+
+; find-index: (find-index pred lst) returns the zero-based index of the first element satisfying pred
+; Returns -1 if no element satisfies pred
+; Stack-safe implementation using tail-recursive helper with index accumulator
+(define (find-index pred lst)
+  (define (find-index-helper pred lst idx)
+    (if (null? lst)
+      -1
+      (if (pred (car lst))
+        idx
+        (find-index-helper pred (cdr lst) (+ idx 1)))))
+  (find-index-helper pred lst 0))
+
 ; any?: returns true iff at least one element of lst satisfies pred
 ; For the empty list, returns false
 (define (any? pred lst)

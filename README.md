@@ -608,12 +608,15 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `interpose` — `(interpose sep lst)` returns a list with `sep` inserted BETWEEN each pair of adjacent elements of `lst` (not before the first or after the last). A list with 0 or 1 elements is returned unchanged. Stack-safe implementation. Example: `(interpose 0 (list 1 2 3))` → `(1 0 2 0 3)`, `(interpose "," (list "a" "b" "c"))` → `("a" "," "b" "," "c")`
 - `count` — `(count x lst)` returns the number of elements of `lst` that are equal to `x` (by `=`). For the empty list, returns 0. Stack-safe implementation using `foldl`. Example: `(count 2 (list 1 2 2 3 2))` → `3`, `(count "a" (list "a" "b" "a"))` → `2`, `(count 5 (list 1 2 3))` → `0`
 - `find` — first element satisfying a predicate, or false if none found
+- `find-index` — `(find-index pred lst)` returns the zero-based index of the first element satisfying predicate `pred`, or `-1` if no element satisfies it. Stack-safe for large lists. Example: `(find-index even? (list 1 3 4 5))` → `2`, `(find-index (lambda (x) (> x 10)) (list 1 5 15))` → `2`
 - `any?` — true iff at least one element satisfies a predicate
 - `all?` — true iff every element satisfies a predicate (vacuously true for empty list)
 - `count-if` — count of elements satisfying a predicate
 - `partition` — split list into two: elements satisfying predicate and those that don't
 - `sum`, `product` — aggregate numeric lists
 - `reduce` — left fold over non-empty lists
+- `scanl` — `(scanl f init lst)` returns a list of successive accumulator values from a left fold. Result has length `(+ (length lst) 1)`: begins with `init`, then each `(f acc x)` for x in lst. Stack-safe for large lists. Example: `(scanl + 0 (list 1 2 3 4))` → `(0 1 3 6 10)` (running sums), `(scanl * 1 (list 1 2 3))` → `(1 1 2 6)`
+- `tabulate` — `(tabulate f n)` returns a list of length `n` containing `((f 0) (f 1) ... (f (- n 1)))`. Applies function `f` to each index from 0 to n-1. Requires `n` to be a non-negative integer (raises error otherwise). Example: `(tabulate (lambda (i) (* i i)) 5)` → `(0 1 4 9 16)`, `(tabulate (lambda (i) (+ i 1)) 3)` → `(1 2 3)`
 - `map2` — two-argument map (parallel iteration)
 - `zip` — pair corresponding elements
 - `sort` — returns a new list sorted in ascending order
