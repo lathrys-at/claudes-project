@@ -1581,3 +1581,44 @@
         rest-power-set
         (map (lambda (subset) (cons x subset)) rest-power-set)))))
 
+; ===== COIN CHANGE =====
+
+; coin-change: (coin-change amount coins) returns the MINIMUM number of coins
+; (chosen from the list `coins` of positive integer denominations, each usable any number of times)
+; that sum exactly to `amount`, or -1 if `amount` cannot be made from the given coins.
+; (coin-change 0 coins) returns 0.
+; Uses bottom-up dynamic programming with a mutable vector.
+; Requires: `amount` must be a non-negative integer and `coins` a non-empty list of positive integers,
+; else raises EvalError.
+(define (coin-change amount coins)
+  ; Validate inputs
+  (if (not (integer? amount))
+    (error "coin-change: amount must be an integer"))
+  (if (< amount 0)
+    (error "coin-change: amount must be non-negative"))
+  (if (not (list? coins))
+    (error "coin-change: coins must be a list"))
+  (if (null? coins)
+    (error "coin-change: coins cannot be empty"))
+  ; Handle base case
+  (if (= amount 0)
+    0
+    ; Create dp vector of length amount+1, initialize all to (amount+1) sentinel
+    (let ((dp (make-vector (+ amount 1) (+ amount 1))))
+      (vector-set! dp 0 0)
+      ; Bottom-up DP: for each total from 1 to amount
+      (dotimes (i (+ amount 1))
+        (for-each
+          (lambda (coin)
+            (if (<= coin i)
+              (let ((prev (vector-ref dp (- i coin)))
+                    (current (vector-ref dp i)))
+                (if (< (+ prev 1) current)
+                  (vector-set! dp i (+ prev 1))))))
+          coins))
+      ; Return dp[amount] if reachable (<=amount), else -1
+      (let ((result (vector-ref dp amount)))
+        (if (<= result amount)
+          result
+          -1)))))
+
