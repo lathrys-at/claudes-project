@@ -1634,3 +1634,47 @@
           result
           -1)))))
 
+; ===== LONGEST COMMON SUBSEQUENCE =====
+
+; lcs-length: (lcs-length a b) returns the length of the longest common subsequence of strings a and b
+; A longest common subsequence (LCS) is a subsequence that appears in both strings with the same relative order
+; but is not necessarily contiguous. For example, the LCS of "ABCBDAB" and "BDCAB" is "BCAB" with length 4.
+; Implementation uses bottom-up dynamic programming with a mutable 2D DP table represented as a vector of rows.
+; Let m = length of a, n = length of b. The DP table has (m+1) x (n+1) entries.
+; The recurrence is:
+;   dp[i][j] = 0 if i=0 or j=0 (base cases)
+;   dp[i][j] = dp[i-1][j-1] + 1 if a[i-1] == b[j-1] (characters match)
+;   dp[i][j] = max(dp[i-1][j], dp[i][j-1]) otherwise (characters don't match)
+(define (lcs-length a b)
+  (let ((m (string-length a))
+        (n (string-length b)))
+    ; Create a DP table: vector of (m+1) row-vectors, each of length (n+1)
+    ; Initialize all entries to 0
+    (let ((dp (make-vector (+ m 1))))
+      ; Initialize each row
+      (dotimes (i (+ m 1))
+        (vector-set! dp i (make-vector (+ n 1) 0)))
+
+      ; Fill the DP table using the recurrence relation
+      ; For each i from 1 to m (row in DP table)
+      (dotimes (i m)
+        (let ((i-idx (+ i 1)))  ; DP table row index (1-indexed)
+          ; For each j from 1 to n (column in DP table)
+          (dotimes (j n)
+            (let ((j-idx (+ j 1)))  ; DP table column index (1-indexed)
+              ; Get characters from strings (0-indexed)
+              (let ((char-a (char-at a i))
+                    (char-b (char-at b j)))
+                ; Check if characters match
+                (if (= char-a char-b)
+                  ; Characters match: increment the diagonal value
+                  (let ((diag-val (vector-ref (vector-ref dp (- i-idx 1)) (- j-idx 1))))
+                    (vector-set! (vector-ref dp i-idx) j-idx (+ diag-val 1)))
+                  ; Characters don't match: take max of left and top
+                  (let ((left-val (vector-ref (vector-ref dp i-idx) (- j-idx 1)))
+                        (top-val (vector-ref (vector-ref dp (- i-idx 1)) j-idx)))
+                    (vector-set! (vector-ref dp i-idx) j-idx (max left-val top-val)))))))))
+
+      ; Return the value at dp[m][n]
+      (vector-ref (vector-ref dp m) n))))
+
