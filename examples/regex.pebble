@@ -1,0 +1,169 @@
+;;; Simple regular expression engine
+;;; Supports: literals, ., *, +, ?, ^, $, [], [^...], backslash escapes
+
+;;; Build a character class matcher
+(define (make-class-matcher class-str negated)
+  (let ((chars (string->list class-str)))
+    (lambda (c)
+      (let ((found (contains? chars c)))
+        (if negated (not found) found)))))
+
+;;; Parse a character class at position
+(define (parse-class pattern pos)
+  (let ((negated (= (char-at pattern pos) "^")))
+    (let ((start (if negated (+ pos 1) pos)))
+      (let ((end (string-index pattern "]" start)))
+        (if (= end -1)
+          (error "Unclosed character class")
+          (list (make-class-matcher (substring pattern start end) negated)
+                (+ end 1)))))))
+
+;;; Test if element matches character
+(define (test-element elem c)
+  (cond
+    ((procedure? elem) (elem c))
+    ((= elem ".") true)
+    (else (= elem c))))
+
+;;; Count consecutive matches
+(define (count-match elem text pos)
+  (if (>= pos (string-length text))
+    0
+    (if (test-element elem (char-at text pos))
+      (+ 1 (count-match elem text (+ pos 1)))
+      0)))
+
+;;; Try to match elements from position
+(define (match-at elems quants text pos)
+  (if (null? elems)
+    0
+    (let ((e (car elems))
+          (q (car quants)))
+      (let ((rest-e (cdr elems))
+            (rest-q (cdr quants)))
+        (define (try-rest len)
+          (match-at rest-e rest-q text (+ pos len)))
+
+        (cond
+          ((= q "*")
+           (let ((max-cnt (count-match e text pos)))
+             (let loop ((cnt max-cnt))
+               (if (< cnt 0)
+                 false
+                 (let ((rest (try-rest cnt)))
+                   (if rest
+                     (+ cnt rest)
+                     (loop (- cnt 1))))))))
+          ((= q "+")
+           (if (not (test-element e text pos))
+             false
+             (let ((max-cnt (+ 1 (count-match e text (+ pos 1)))))
+               (let loop ((cnt max-cnt))
+                 (if (< cnt 1)
+                   false
+                   (let ((rest (try-rest cnt)))
+                     (if rest
+                       (+ cnt rest)
+                       (loop (- cnt 1)))))))))
+          ((= q "?")
+           (let ((with (try-rest 1)))
+             (if with
+               (if (test-element e text pos) (+ 1 with) with)
+               (try-rest 0))))
+          (else
+           (if (test-element e text pos)
+             (let ((rest (try-rest 1)))
+               (if rest (+ 1 rest) false))
+             false)))))))
+
+;;; Parse pattern to get elements and quantifiers
+(define (parse-pat pattern)
+  (define (parse-quant idx)
+    (if (< idx (string-length pattern))
+      (let ((ch (char-at pattern idx)))
+        (cond
+          ((= ch "*") (list "*" (+ idx 1)))
+          ((= ch "+") (list "+" (+ idx 1)))
+          ((= ch "?") (list "?" (+ idx 1)))
+          (else (list nil idx))))
+      (list nil idx)))
+
+  (define (loop idx elems quants)
+    (if (>= idx (string-length pattern))
+      (list (reverse elems) (reverse quants))
+      (let ((c (char-at pattern idx)))
+        (cond
+          ((= c "\\")
+           (if (>= (+ idx 1) (string-length pattern))
+             (error "Trailing backslash")
+             (let ((nc (char-at pattern (+ idx 1))))
+               (let ((q-info (parse-quant (+ idx 2))))
+                 (loop (cadr q-info)
+                       (cons nc elems)
+                       (cons (car q-info) quants))))))
+          ((= c "[")
+           (let ((class-info (parse-class pattern (+ idx 1))))
+             (let ((matcher (car class-info))
+                   (nidx (cadr class-info)))
+               (let ((q-info (parse-quant nidx)))
+                 (loop (cadr q-info)
+                       (cons matcher elems)
+                       (cons (car q-info) quants))))))
+          ((= c ".")
+           (let ((q-info (parse-quant (+ idx 1))))
+             (loop (cadr q-info)
+                   (cons "." elems)
+                   (cons (car q-info) quants))))
+          ((or (= c "^") (= c "$") (= c "*") (= c "+") (= c "?"))
+           (loop (+ idx 1) elems quants))
+          (else
+           (let ((q-info (parse-quant (+ idx 1))))
+             (loop (cadr q-info)
+                   (cons c elems)
+                   (cons (car q-info) quants))))))))
+
+  (loop 0 nil nil))
+
+;;; Main regex matcher - returns matched string or false
+(define (regex-match pattern text)
+  (let ((start-anc (and (> (string-length pattern) 0)
+                        (= (char-at pattern 0) "^")))
+        (end-anc (and (> (string-length pattern) 0)
+                      (= (char-at pattern (- (string-length pattern) 1)) "$"))))
+    (let ((pat (cond
+                 ((and start-anc end-anc)
+                  (substring pattern 1 (- (string-length pattern) 1)))
+                 (start-anc (substring pattern 1 (string-length pattern)))
+                 (end-anc (substring pattern 0 (- (string-length pattern) 1)))
+                 (else pattern))))
+      (let ((parsed (parse-pat pat)))
+        (let ((elems (car parsed))
+              (quants (cadr parsed)))
+          (if (null? elems)
+            ""
+            (let loop ((pos 0))
+              (if (> pos (string-length text))
+                false
+                (let ((mlen (if start-anc
+                             (if (= pos 0) (match-at elems quants text 0) false)
+                             (match-at elems quants text pos))))
+                  (if mlen
+                    (if end-anc
+                      (if (= (+ pos mlen) (string-length text))
+                        (substring text pos (+ pos mlen))
+                        (loop (+ pos 1)))
+                      (substring text pos (+ pos mlen)))
+                    (loop (+ pos 1))))))))))))
+
+;;; Test if regex matches
+(define (regex-match? pattern text)
+  (if (regex-match pattern text) true false))
+
+;;; Demo
+(displayln (regex-match "cat" "the cat sat"))
+(displayln (regex-match "c.t" "cat"))
+(displayln (regex-match "ab*c" "abbbc"))
+(displayln (regex-match "ab+c" "ac"))
+(displayln (regex-match "^cat" "cat dog"))
+(displayln (regex-match "[0-9]+" "abc123def"))
+

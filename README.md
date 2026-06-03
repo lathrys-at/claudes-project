@@ -93,6 +93,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 - `examples/vigenere.pebble` — Vigenère polyalphabetic cipher with key cycling and case preservation
 - `examples/metacircular.pebble` — A tiny Lisp interpreter written in Pebble, supporting lambda, closures, recursion, and define
 - `examples/json.pebble` — JSON (subset) parser and serializer for objects, arrays, strings, integers, and booleans
+- `examples/regex.pebble` — Regular expression engine with recursive backtracking supporting literals, wildcards, quantifiers, anchors, and character classes
 - `examples/matrix.pebble` — A small matrix library: transpose, multiply, add, identity
 - `examples/life.pebble` — Conway's Game of Life on a mutable-vector grid
 - `examples/simplify.pebble` — Symbolic algebra simplifier using `match` pattern-matching to rewrite arithmetic expressions
