@@ -1,0 +1,45 @@
+;;; Bank Account: a stateful object using closures and set!
+;;; Demonstrates mutable state via closures capturing let-bound variables
+
+(define (make-account initial-balance)
+  "Create a bank account with the given initial balance.
+   Returns a dispatch function that handles messages: 'balance, 'deposit, 'withdraw"
+  (let ((balance initial-balance))
+    (lambda (message)
+      (cond
+        ((= message (quote balance))
+         balance)
+        ((= message (quote deposit))
+         (lambda (amount)
+           (begin
+             (set! balance (+ balance amount))
+             balance)))
+        ((= message (quote withdraw))
+         (lambda (amount)
+           (if (< balance amount)
+             (error "Insufficient funds")
+             (begin
+               (set! balance (- balance amount))
+               balance))))
+        (else
+          (error (string-append "Unknown message: " (symbol->string message))))))))
+
+;;; Convenience wrappers for message-passing interface
+(define (account-balance acc)
+  "Get the current balance of an account"
+  (acc (quote balance)))
+
+(define (account-deposit! acc amount)
+  "Deposit amount into the account and return the new balance"
+  ((acc (quote deposit)) amount))
+
+(define (account-withdraw! acc amount)
+  "Withdraw amount from the account and return the new balance.
+   Raises an error if insufficient funds."
+  ((acc (quote withdraw)) amount))
+
+;;; Demo: create an account with 100, deposit 50, withdraw 30, print the balance
+(define demo-account (make-account 100))
+(account-deposit! demo-account 50)
+(account-withdraw! demo-account 30)
+(displayln (account-balance demo-account))
