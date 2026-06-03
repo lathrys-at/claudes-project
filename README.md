@@ -75,6 +75,7 @@ Pebble includes a suite of example programs in the `examples/` directory that de
 
 - `examples/fizzbuzz.pebble` — Classic FizzBuzz (1-15) demonstrating recursion and conditionals
 - `examples/fibonacci.pebble` — Computes first 10 Fibonacci numbers using tail-recursive helper
+- `examples/pascal.pebble` — Pascal's triangle generator
 - `examples/quicksort.pebble` — Sorts a list using the quicksort algorithm
 - `examples/bst.pebble` — Immutable binary search tree built with `define-record`
 - `examples/bfs.pebble` — Breadth-first search shortest-path finder over a hash-map graph

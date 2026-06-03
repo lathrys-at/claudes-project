@@ -1,0 +1,22 @@
+;;; Pascal's triangle: generate the first n rows
+;;; Each row is a list of binomial coefficients
+;;; Row 1 is (1)
+;;; Each subsequent row is built from the previous row by:
+;;; - Taking the pairwise sums of adjacent elements from the previous row
+;;; - Prepending 1 and appending 1
+
+(define (next-row prev)
+  "Generate the next row of Pascal's triangle from the previous row."
+  (cons 1 (append (map2 + prev (cdr prev)) (list 1))))
+
+(define (pascal n)
+  "Return the first n rows of Pascal's triangle."
+  (if (= n 0)
+    nil
+    (let loop ((count 1) (rows (list (list 1))))
+      (if (= count n)
+        rows
+        (loop (+ count 1) (append rows (list (next-row (car (reverse rows))))))))))
+
+;;; Demo: print the first 5 rows
+(displayln (pascal 5))
