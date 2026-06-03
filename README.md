@@ -561,6 +561,10 @@ Pebble includes a standard library written in the Pebble language itself, automa
 - `permutations-count` — `(permutations-count n k)` returns the number of k-permutations of n (ordered selections of k items from n items): `n! / (n-k)!`. Requires non-negative integers `n` and `k`. If `k > n`, returns 0. `(permutations-count n 0)` is 1. Uses exact integer arithmetic. Raises an error if `n` or `k` is not an integer or is negative. Example: `(permutations-count 5 2)` → `20`, `(permutations-count 10 3)` → `720`
 - `combinations-count` — `(combinations-count n k)` returns the binomial coefficient "n choose k" (unordered selections of k items from n items): `n! / (k! * (n-k)!)`. Requires non-negative integers `n` and `k`. If `k > n`, returns 0. `(combinations-count n 0)` and `(combinations-count n n)` are 1. Uses exact integer arithmetic. Raises an error if `n` or `k` is not an integer or is negative. Example: `(combinations-count 5 2)` → `10`, `(combinations-count 52 5)` → `2598960`
 
+**Number theory:**
+- `prime?` — `(prime? n)` returns true if `n` is a prime number, false otherwise. A number is prime iff it is an integer ≥ 2 with no divisors `d` where `2 ≤ d` and `d*d ≤ n`. Uses trial division up to the square root for efficient checking. Returns false for all integers less than 2 and for non-integers. Example: `(prime? 2)` → `true`, `(prime? 97)` → `true`, `(prime? 91)` → `false` (since 91 = 7 × 13)
+- `primes-up-to` — `(primes-up-to n)` returns a list of all prime numbers less than or equal to `n`, in ascending order. For `n < 2`, returns the empty list. Implemented by filtering `prime?` over the range from 2 to n. Example: `(primes-up-to 10)` → `(2 3 5 7)`, `(primes-up-to 30)` → `(2 3 5 7 11 13 17 19 23 29)`, `(length (primes-up-to 100))` → `25`
+
 **Higher-order functions:**
 - `compose` — function composition `(compose f g)` → `(lambda (x) (f (g x)))`
 - `const` — returns a constant function

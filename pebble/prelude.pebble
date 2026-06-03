@@ -1457,3 +1457,32 @@
     0
     (quotient (factorial n) (* (factorial k) (factorial (- n k))))))
 
+; ===== NUMBER THEORY FUNCTIONS =====
+
+; prime?: (prime? n) returns true iff n is a prime number
+; A number is prime iff it is >= 2 and has no divisors d with 2 <= d and d*d <= n
+; Returns false for all integers less than 2, including negative numbers
+; For non-integers, returns false
+(define (prime? n)
+  (if (not (integer? n))
+    false
+    (if (< n 2)
+      false
+      (let ()
+        ; Check if any divisor d from 2 to sqrt(n) divides n evenly
+        (define (has-divisor? d)
+          (if (> (* d d) n)
+            false
+            (if (= (modulo n d) 0)
+              true
+              (has-divisor? (+ d 1)))))
+        (not (has-divisor? 2))))))
+
+; primes-up-to: (primes-up-to n) returns the list of all prime numbers <= n in ascending order
+; For n < 2, returns the empty list
+; Implementation: filter prime? over integers from 2 to n
+(define (primes-up-to n)
+  (if (< n 2)
+    nil
+    (filter prime? (range 2 (+ n 1)))))
+
